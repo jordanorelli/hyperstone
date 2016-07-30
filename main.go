@@ -69,7 +69,7 @@ func main() {
 	}
 
 	p := newParser(r)
-	if _, err := p.checkHeader(); err != nil {
+	if err := p.start(); err != nil {
 		bail(1, "parse error: %v", err)
 	}
 }
