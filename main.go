@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+const (
+	replay_header = "PBDEMS2\000"
+)
+
 func ensureNewline(t string) string {
 	if strings.HasSuffix(t, "\n") {
 		return t
@@ -59,8 +63,17 @@ func main() {
 	flag.StringVar(&opts.f, "f", "--", "input file to be used. -- means stdin")
 	flag.Parse()
 
-	_, err := opts.input()
+	r, err := opts.input()
 	if err != nil {
 		bail(1, "input error: %v", err)
 	}
+
+	buf := make([]byte, 8)
+	if _, err := r.Read(buf); err != nil {
+		bail(1, "error reading header: %v", err)
+	}
+	if string(buf) != replay_header {
+		bail(1, "unexpected replay header: %s", string(buf))
+	}
+	fmt.Println(string(buf))
 }
