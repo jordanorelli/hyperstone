@@ -1,11 +1,11 @@
 package main
 
 import (
+	"compress/bzip2"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -14,14 +14,6 @@ func ensureNewline(t string) string {
 		return t
 	}
 	return t + "\n"
-}
-
-func usage(t string, args ...interface{}) {
-	t = ensureNewline(t) + "\n"
-	fmt.Fprintf(os.Stderr, t, args...)
-	fmt.Fprintln(os.Stderr, "Usage:")
-	fmt.Fprintln(os.Stderr, "\thyperstone replay-id")
-	os.Exit(1)
 }
 
 func bail(status int, t string, args ...interface{}) {
@@ -36,29 +28,39 @@ func bail(status int, t string, args ...interface{}) {
 	os.Exit(status)
 }
 
-func openReplayFile(path string) (io.ReadCloser, error) {
-	fi, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("unable to open replay file: %v", err)
+type options struct {
+	b bool   // bzip compression flag
+	v bool   // verbose flag
+	f string // input file
+}
+
+func (o options) input() (io.Reader, error) {
+	var r io.Reader
+	if o.f == "--" {
+		r = os.Stdin
+	} else {
+		fi, err := os.Open(o.f)
+		if err != nil {
+			return nil, fmt.Errorf("unable to open file %s: %v", o.f, err)
+		}
+		r = fi
 	}
 
-	switch filepath.Ext(path) {
-	case ".bz2":
-		return newBzipCloser(fi), nil
-	default:
-		return fi, nil
+	if o.b {
+		r = bzip2.NewReader(r)
 	}
-	return nil, io.EOF
+	return r, nil
 }
 
 func main() {
+	var opts options
+	flag.BoolVar(&opts.b, "b", false, "input is expected to be bzip-compressed")
+	flag.BoolVar(&opts.v, "v", false, "verbose mode")
+	flag.StringVar(&opts.f, "f", "--", "input file to be used. -- means stdin")
 	flag.Parse()
-	if flag.NArg() != 1 {
-		usage("please supply the path to a valid replay file")
-	}
-	f, err := openReplayFile(flag.Arg(0))
+
+	_, err := opts.input()
 	if err != nil {
-		bail(1, "unable to open replay file: %v", err)
+		bail(1, "input error: %v", err)
 	}
-	defer f.Close()
 }
