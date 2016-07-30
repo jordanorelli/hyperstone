@@ -68,12 +68,8 @@ func main() {
 		bail(1, "input error: %v", err)
 	}
 
-	buf := make([]byte, 8)
-	if _, err := r.Read(buf); err != nil {
-		bail(1, "error reading header: %v", err)
+	p := newParser(r)
+	if _, err := p.checkHeader(); err != nil {
+		bail(1, "parse error: %v", err)
 	}
-	if string(buf) != replay_header {
-		bail(1, "unexpected replay header: %s", string(buf))
-	}
-	fmt.Println(string(buf))
 }
