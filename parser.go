@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	// "github.com/golang/protobuf/proto"
 )
 
 type parser struct {
@@ -23,23 +22,22 @@ func newParser(r io.Reader) *parser {
 func (p *parser) start() error {
 	ok, err := p.checkHeader()
 	if err != nil {
-		return fmt.Errorf("parser start error: %v", err)
+		return wrap(err, "parser start error")
 	}
 	if !ok {
 		return fmt.Errorf("parser start error: invalid header")
 	}
 	if _, err := p.source.Discard(8); err != nil {
-		return err
+		return wrap(err, "parser start error")
 	}
 	return nil
 }
 
-func (p *parser) run() {
+func (p *parser) run() error {
 	for {
 		msg, err := p.readMessage()
 		if err != nil {
-			fmt.Printf("error: %v\n", err)
-			return
+			return wrap(err, "read message error in run loop")
 		}
 		fmt.Println(msg)
 	}
@@ -58,7 +56,7 @@ func (p *parser) decodeVarint() (uint64, error) {
 	// would require 10 bytes.
 	buf, err := p.source.Peek(10)
 	if err != nil {
-		return 0, fmt.Errorf("decode varint couldn't peek 9 bytes: %v", err)
+		return 0, wrap(err, "decode varint couldn't peek 10 bytes")
 	}
 
 	var x uint64
@@ -67,7 +65,7 @@ func (p *parser) decodeVarint() (uint64, error) {
 		// when msb is 0, we're at the last byte of the value
 		if b < 0x80 {
 			if _, err := p.source.Discard(i + 1); err != nil {
-				return 0, fmt.Errorf("decode varint couldn't discard %d bytes: %v", i, err)
+				return 0, wrap(err, "decode varint couldn't discard %d bytes", i)
 			}
 			return x | uint64(b)<<s, nil
 		}
@@ -90,7 +88,7 @@ func (p *parser) readn(n int) ([]byte, error) {
 	}
 	buf := p.scratch[:n]
 	if _, err := io.ReadFull(p.source, buf); err != nil {
-		return nil, fmt.Errorf("error reading %d bytes: %v", n, err)
+		return nil, wrap(err, "error reading %d bytes", n)
 	}
 	return buf, nil
 }
@@ -99,7 +97,7 @@ func (p *parser) readn(n int) ([]byte, error) {
 func (p *parser) checkHeader() (bool, error) {
 	buf, err := p.readn(8)
 	if err != nil {
-		return false, fmt.Errorf("unable to read header bytes: %v", err)
+		return false, wrap(err, "unable to read header bytes")
 	}
 	return string(buf) == replayHeader, nil
 }
@@ -107,7 +105,7 @@ func (p *parser) checkHeader() (bool, error) {
 func (p *parser) readCommand() (EDemoCommands, bool, error) {
 	n, err := p.decodeVarint()
 	if err != nil {
-		return EDemoCommands_DEM_Error, false, fmt.Errorf("readCommand couldn't read varint: %v", err)
+		return EDemoCommands_DEM_Error, false, wrap(err, "readCommand couldn't read varint")
 	}
 
 	compressed := false
@@ -135,23 +133,23 @@ func (m *message) String() string {
 func (p *parser) readMessage() (*message, error) {
 	cmd, compressed, err := p.readCommand()
 	if err != nil {
-		return nil, fmt.Errorf("readMessage couldn't get a command: %v", err)
+		return nil, wrap(err, "readMessage couldn't get a command")
 	}
 
 	tick, err := p.decodeVarint()
 	if err != nil {
-		return nil, fmt.Errorf("readMessage couldn't read the tick value: %v", err)
+		return nil, wrap(err, "readMessage couldn't read the tick value")
 	}
 
 	size, err := p.decodeVarint()
 	if err != nil {
-		return nil, fmt.Errorf("readMessage couldn't read the size value: %v", err)
+		return nil, wrap(err, "readMessage couldn't read the size value")
 	}
 
 	if size > 0 {
 		buf, err := p.readn(int(size))
 		if err != nil {
-			return nil, fmt.Errorf("readMessage couldn't read message body: %v", err)
+			return nil, wrap(err, "readMessage couldn't read message body")
 		}
 		return &message{cmd, int64(tick), compressed, buf}, nil
 	}

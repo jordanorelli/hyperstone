@@ -32,6 +32,13 @@ func bail(status int, t string, args ...interface{}) {
 	os.Exit(status)
 }
 
+func wrap(err error, t string, args ...interface{}) error {
+	if err == io.EOF {
+		return io.EOF
+	}
+	return fmt.Errorf(t+": %v", append(args, err)...)
+}
+
 type options struct {
 	b bool   // bzip compression flag
 	v bool   // verbose flag
@@ -45,7 +52,7 @@ func (o options) input() (io.Reader, error) {
 	} else {
 		fi, err := os.Open(o.f)
 		if err != nil {
-			return nil, fmt.Errorf("unable to open file %s: %v", o.f, err)
+			return nil, wrap(err, "unable to open file %s", o.f)
 		}
 		r = fi
 	}
@@ -72,5 +79,7 @@ func main() {
 	if err := p.start(); err != nil {
 		bail(1, "parse error: %v", err)
 	}
-	p.run()
+	if err := p.run(); err != nil && err != io.EOF {
+		bail(1, "run error: %v", err)
+	}
 }
