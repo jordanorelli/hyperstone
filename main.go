@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	replay_header = "PBDEMS2\000"
+	replayHeader = "PBDEMS2\000"
 )
 
 func ensureNewline(t string) string {
@@ -72,4 +72,5 @@ func main() {
 	if err := p.start(); err != nil {
 		bail(1, "parse error: %v", err)
 	}
+	p.run()
 }
