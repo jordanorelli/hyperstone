@@ -53,7 +53,10 @@ func (p *parser) run() {
 // This is the format for the
 // int32, int64, uint32, uint64, bool, and enum
 func (p *parser) decodeVarint() (uint64, error) {
-	buf, err := p.source.Peek(9)
+	// protobuf defines values that are up to 64 bits wide. The largest value
+	// stored in a protobuf varint is 64 data bits, which in varint encoding,
+	// would require 10 bytes.
+	buf, err := p.source.Peek(10)
 	if err != nil {
 		return 0, fmt.Errorf("decode varint couldn't peek 9 bytes: %v", err)
 	}
@@ -101,29 +104,36 @@ func (p *parser) checkHeader() (bool, error) {
 	return string(buf) == replayHeader, nil
 }
 
-func (p *parser) readCommand() (EDemoCommands, error) {
+func (p *parser) readCommand() (EDemoCommands, bool, error) {
 	n, err := p.decodeVarint()
 	if err != nil {
-		return EDemoCommands_DEM_Error, fmt.Errorf("readCommand couldn't read varint: %v", err)
+		return EDemoCommands_DEM_Error, false, fmt.Errorf("readCommand couldn't read varint: %v", err)
 	}
-	return EDemoCommands(n), nil
+
+	compressed := false
+	if n&0x40 > 0 {
+		compressed = true
+		n &^= 0x40
+	}
+	return EDemoCommands(n), compressed, nil
 }
 
 type message struct {
-	cmd  EDemoCommands
-	tick int64
-	body []byte
+	cmd        EDemoCommands
+	tick       int64
+	compressed bool
+	body       []byte
 }
 
 func (m *message) String() string {
 	if len(m.body) > 30 {
-		return fmt.Sprintf("{cmd: %v tick: %v body: %q...}", m.cmd, m.tick, m.body[:27])
+		return fmt.Sprintf("{cmd: %v tick: %v compressed: %t body(%d): %q...}", m.cmd, m.tick, m.compressed, len(m.body), m.body[:27])
 	}
-	return fmt.Sprintf("{cmd: %v tick: %v body: %q}", m.cmd, m.tick, m.body)
+	return fmt.Sprintf("{cmd: %v tick: %v compressed: %t body(%d): %q}", m.cmd, m.tick, m.compressed, len(m.body), m.body)
 }
 
 func (p *parser) readMessage() (*message, error) {
-	cmd, err := p.readCommand()
+	cmd, compressed, err := p.readCommand()
 	if err != nil {
 		return nil, fmt.Errorf("readMessage couldn't get a command: %v", err)
 	}
@@ -143,8 +153,8 @@ func (p *parser) readMessage() (*message, error) {
 		if err != nil {
 			return nil, fmt.Errorf("readMessage couldn't read message body: %v", err)
 		}
-		return &message{cmd, int64(tick), buf}, nil
+		return &message{cmd, int64(tick), compressed, buf}, nil
 	}
 
-	return &message{cmd, int64(tick), nil}, nil
+	return &message{cmd, int64(tick), compressed, nil}, nil
 }
