@@ -154,8 +154,10 @@ func (p *parser) readMessage() (*message, error) {
 		if _, err := io.ReadFull(p.source, buf); err != nil {
 			return nil, wrap(err, "readMessage couldn't read message body")
 		}
+		// TODO: pool these!
 		return &message{cmd, int64(tick), compressed, buf}, nil
 	}
 
+	// TODO: pool these!
 	return &message{cmd, int64(tick), compressed, nil}, nil
 }
