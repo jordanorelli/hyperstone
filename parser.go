@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/snappy"
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
@@ -42,6 +44,19 @@ func (p *parser) run() error {
 			return wrap(err, "read message error in run loop")
 		}
 		fmt.Println(msg)
+		switch msg.cmd {
+		case dota.EDemoCommands_DEM_Packet:
+			if err := p.openPacket(msg); err != nil {
+				fmt.Printf("error: %v\n", err)
+			}
+		}
+	}
+}
+
+// grows the scratch buffer until it is at least n bytes wide
+func (p *parser) growScratch(n int) {
+	for len(p.scratch) < n {
+		p.scratch = make([]byte, 2*len(p.scratch))
 	}
 }
 
@@ -84,10 +99,7 @@ func (p *parser) decodeVarint() (uint64, error) {
 // the beginning of the scratch buffer. it will be corrupted on the next call
 // to readn or the next operation that utilizes the scratch buffer.
 func (p *parser) readn(n int) ([]byte, error) {
-	if n > cap(p.scratch) {
-		p.scratch = make([]byte, 2*cap(p.scratch))
-		return p.readn(n)
-	}
+	p.growScratch(n)
 	buf := p.scratch[:n]
 	if _, err := io.ReadFull(p.source, buf); err != nil {
 		return nil, wrap(err, "error reading %d bytes", n)
@@ -149,12 +161,33 @@ func (p *parser) readMessage() (*message, error) {
 	}
 
 	if size > 0 {
-		buf, err := p.readn(int(size))
-		if err != nil {
+		buf := make([]byte, int(size))
+		if _, err := io.ReadFull(p.source, buf); err != nil {
 			return nil, wrap(err, "readMessage couldn't read message body")
 		}
 		return &message{cmd, int64(tick), compressed, buf}, nil
 	}
 
 	return &message{cmd, int64(tick), compressed, nil}, nil
+}
+
+func (p *parser) openPacket(msg *message) error {
+	if msg.cmd != dota.EDemoCommands_DEM_Packet {
+		return fmt.Errorf("wrong command type in openPacket: %v", msg.cmd)
+	}
+
+	if msg.compressed {
+		buf, err := snappy.Decode(nil, msg.body)
+		if err != nil {
+			return wrap(err, "open packet error: could not decode body")
+		}
+		msg.body = buf
+	}
+
+	packet := new(dota.CDemoPacket)
+	if err := proto.Unmarshal(msg.body, packet); err != nil {
+		return wrap(err, "onPacket unable to unmarshal message body")
+	}
+	fmt.Printf("\t{in: %d out: %d data: %x}\n", packet.GetSequenceIn(), packet.GetSequenceOutAck(), packet.GetData()[:8])
+	return nil
 }
