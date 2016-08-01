@@ -12,16 +12,13 @@ type parser struct {
 	// the source of replay bytes. Must NOT be compressed.
 	source *bufio.Reader
 
-	// re-useable scratch buffer. Contents never guaranteed to be clean.
-	scratch []byte
-
 	dumpMessages bool
 	dumpPackets  bool
 }
 
 func newParser(r io.Reader) *parser {
 	br := bufio.NewReaderSize(r, 1<<16)
-	return &parser{source: br, scratch: make([]byte, 1<<10)}
+	return &parser{source: br}
 }
 
 func (p *parser) start() error {
@@ -53,13 +50,6 @@ func (p *parser) run() error {
 				fmt.Printf("error: %v\n", err)
 			}
 		}
-	}
-}
-
-// grows the scratch buffer until it is at least n bytes wide
-func (p *parser) growScratch(n int) {
-	for len(p.scratch) < n {
-		p.scratch = make([]byte, 2*len(p.scratch))
 	}
 }
 
@@ -102,8 +92,7 @@ func (p *parser) decodeVarint() (uint64, error) {
 // the beginning of the scratch buffer. it will be corrupted on the next call
 // to readn or the next operation that utilizes the scratch buffer.
 func (p *parser) readn(n int) ([]byte, error) {
-	p.growScratch(n)
-	buf := p.scratch[:n]
+	buf := make([]byte, n)
 	if _, err := io.ReadFull(p.source, buf); err != nil {
 		return nil, wrap(err, "error reading %d bytes", n)
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -48,4 +49,69 @@ func (b *bitBuffer) readBits(bits uint) uint64 {
 	n := (b.scratch >> (b.bits - bits)) & ((1 << bits) - 1)
 	b.bits -= bits
 	return n
+}
+
+func (b *bitBuffer) readByte() (out byte) {
+	if b.bits == 0 {
+		if b.index >= len(b.source) {
+			b.err = io.ErrUnexpectedEOF
+			return
+		}
+		out = b.source[b.index]
+		b.index += 1
+		return
+	}
+	return byte(b.readBits(8))
+}
+
+func (b *bitBuffer) readBytes(n int) []byte {
+	if b.bits == 0 {
+		b.index += n
+		if b.index > len(b.source) {
+			b.err = io.ErrUnexpectedEOF
+			return []byte{}
+		}
+		return b.source[b.index-n : b.index]
+	}
+	buf := make([]byte, n)
+	for i := 0; i < n; i++ {
+		buf[i] = byte(b.readBits(8))
+	}
+	return buf
+}
+
+// readVarUint reads a variable-length uint32, encoded with some scheme that I
+// can't find a standard for. first two bits are a length prefix, followed by a
+// 4, 8, 12, or 32-bit wide uint.
+func (b *bitBuffer) readVarUint() uint32 {
+	switch b.readBits(2) {
+	case 0:
+		return uint32(b.readBits(4))
+	case 1:
+		return uint32(b.readBits(4) | b.readBits(4)<<4)
+	case 2:
+		return uint32(b.readBits(4) | b.readBits(8)<<4)
+	case 3:
+		return uint32(b.readBits(4) | b.readBits(28)<<4)
+	default:
+		// this switch is already exhaustive, the compiler just can't tell.
+		panic(fmt.Sprintf("invalid varuint prefix"))
+	}
+}
+
+// readVarInt reads a varint-encoded value off of the front of the buffer. This
+// is the varint encoding used in protobuf. That is: each byte utilizes a 7-bit
+// group. the msb of each byte indicates whether there are more bytes to
+// follow.
+func (b *bitBuffer) readVarInt() uint64 {
+	var x, n uint64
+	for shift := uint(0); shift < 64; shift += 7 {
+		n = b.readBits(8)
+		if n < 0x80 {
+			return x | n<<shift
+		}
+		x |= n &^ 0x80 << shift
+	}
+	b.err = fmt.Errorf("readVarInt never saw the end of varint")
+	return 0
 }
