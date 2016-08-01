@@ -17,9 +17,9 @@ type message struct {
 
 func (m message) String() string {
 	if len(m.body) > 30 {
-		return fmt.Sprintf("{cmd: %v tick: %v compressed: %t body(%d): %q...}", m.cmd, m.tick, m.compressed, len(m.body), m.body[:27])
+		return fmt.Sprintf("{cmd: %v tick: %v compressed: %t size: %d body): %q...}", m.cmd, m.tick, m.compressed, len(m.body), m.body[:27])
 	}
-	return fmt.Sprintf("{cmd: %v tick: %v compressed: %t body(%d): %q}", m.cmd, m.tick, m.compressed, len(m.body), m.body)
+	return fmt.Sprintf("{cmd: %v tick: %v compressed: %t size: %d body: %q}", m.cmd, m.tick, m.compressed, len(m.body), m.body)
 }
 
 func (m *message) check() error {
@@ -33,6 +33,7 @@ func (m *message) check() error {
 			return wrap(err, "open packet error: could not decode body")
 		}
 		m.body = buf
+		m.compressed = false
 	}
 
 	packet := new(dota.CDemoPacket)
