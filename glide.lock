@@ -1,0 +1,10 @@
+hash: 9208b00dc0b7be6b23958e0642efb66c8584c0be1d97fd81a9de0df643ac2877
+updated: 2016-07-31T18:52:05.106198608-04:00
+imports:
+- name: github.com/golang/protobuf
+  version: c3cefd437628a0b7d31b34fe44b3a7a540e98527
+  subpackages:
+  - proto
+- name: github.com/golang/snappy
+  version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
+testImports: []

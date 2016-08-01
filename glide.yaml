@@ -1,0 +1,4 @@
+package: github.com/jordanorelli/hyperstone
+import:
+- package: github.com/golang/protobuf
+- package: github.com/golang/snappy
