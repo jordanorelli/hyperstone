@@ -14,10 +14,13 @@ type parser struct {
 
 	// re-useable scratch buffer. Contents never guaranteed to be clean.
 	scratch []byte
+
+	dumpMessages bool
+	dumpPackets  bool
 }
 
 func newParser(r io.Reader) *parser {
-	br := bufio.NewReader(r)
+	br := bufio.NewReaderSize(r, 1<<16)
 	return &parser{source: br, scratch: make([]byte, 1<<10)}
 }
 
@@ -41,10 +44,12 @@ func (p *parser) run() error {
 		if err != nil {
 			return wrap(err, "read message error in run loop")
 		}
-		fmt.Println(msg)
+		if p.dumpMessages {
+			fmt.Println(msg)
+		}
 		switch msg.cmd {
 		case dota.EDemoCommands_DEM_Packet:
-			if err := msg.check(); err != nil {
+			if err := msg.check(p.dumpPackets); err != nil {
 				fmt.Printf("error: %v\n", err)
 			}
 		}

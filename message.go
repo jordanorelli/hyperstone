@@ -17,12 +17,12 @@ type message struct {
 
 func (m message) String() string {
 	if len(m.body) > 30 {
-		return fmt.Sprintf("{cmd: %v tick: %v compressed: %t size: %d body): %q...}", m.cmd, m.tick, m.compressed, len(m.body), m.body[:27])
+		return fmt.Sprintf("{cmd: %v tick: %v compressed: %t size: %d body: %q...}", m.cmd, m.tick, m.compressed, len(m.body), m.body[:27])
 	}
 	return fmt.Sprintf("{cmd: %v tick: %v compressed: %t size: %d body: %q}", m.cmd, m.tick, m.compressed, len(m.body), m.body)
 }
 
-func (m *message) check() error {
+func (m *message) check(dump bool) error {
 	if m.cmd != dota.EDemoCommands_DEM_Packet {
 		return fmt.Errorf("wrong command type in openPacket: %v", m.cmd)
 	}
@@ -40,6 +40,8 @@ func (m *message) check() error {
 	if err := proto.Unmarshal(m.body, packet); err != nil {
 		return wrap(err, "onPacket unable to unmarshal message body")
 	}
-	fmt.Printf("\t{in: %d out: %d data: %x}\n", packet.GetSequenceIn(), packet.GetSequenceOutAck(), packet.GetData()[:8])
+	if dump {
+		fmt.Printf("{in: %d out: %d data: %x}\n", packet.GetSequenceIn(), packet.GetSequenceOutAck(), packet.GetData()[:8])
+	}
 	return nil
 }
