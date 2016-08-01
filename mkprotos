@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+echo "Generating Protobuf definitions."
+echo "Did you update the GameTracking submodule? You want to do that."
+
+echo "clearing existing proto files in ./dota"
+rm dota/*.proto
+
+echo "copying protos from GameTracking/Protobufs/dota"
+cp GameTracking/Protobufs/dota/*.proto ./dota
+
+echo "removing unused protos"
+rm dota/gametoolevents.proto
+rm dota/steammessages_cloud.steamworkssdk.proto
+rm dota/steammessages_oauth.steamworkssdk.proto
+rm dota/steammessages_publishedfile.steamworkssdk.proto
+
+echo "explicitly declaring dota package in every proto"
+sed -i '1ipackage dota;\n' dota/*.proto
+
+echo "removing these weird extraneous dots in the definitions"
+sed -i 's/ \./ /g' dota/*.proto
+
+protoc -I dota --go_out=dota dota/*.proto
+
+echo "rewriting broken import paths"
+sed -i 's|google/protobuf|github.com/golang/protobuf/protoc-gen-go/descriptor|' dota/*.pb.go

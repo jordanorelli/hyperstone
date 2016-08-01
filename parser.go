@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+
+	"github.com/jordanorelli/hyperstone/dota"
 )
 
 type parser struct {
@@ -102,10 +104,10 @@ func (p *parser) checkHeader() (bool, error) {
 	return string(buf) == replayHeader, nil
 }
 
-func (p *parser) readCommand() (EDemoCommands, bool, error) {
+func (p *parser) readCommand() (dota.EDemoCommands, bool, error) {
 	n, err := p.decodeVarint()
 	if err != nil {
-		return EDemoCommands_DEM_Error, false, wrap(err, "readCommand couldn't read varint")
+		return dota.EDemoCommands_DEM_Error, false, wrap(err, "readCommand couldn't read varint")
 	}
 
 	compressed := false
@@ -113,11 +115,11 @@ func (p *parser) readCommand() (EDemoCommands, bool, error) {
 		compressed = true
 		n &^= 0x40
 	}
-	return EDemoCommands(n), compressed, nil
+	return dota.EDemoCommands(n), compressed, nil
 }
 
 type message struct {
-	cmd        EDemoCommands
+	cmd        dota.EDemoCommands
 	tick       int64
 	compressed bool
 	body       []byte
