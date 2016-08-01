@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/snappy"
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
@@ -46,7 +44,7 @@ func (p *parser) run() error {
 		fmt.Println(msg)
 		switch msg.cmd {
 		case dota.EDemoCommands_DEM_Packet:
-			if err := p.openPacket(msg); err != nil {
+			if err := msg.check(); err != nil {
 				fmt.Printf("error: %v\n", err)
 			}
 		}
@@ -130,20 +128,6 @@ func (p *parser) readCommand() (dota.EDemoCommands, bool, error) {
 	return dota.EDemoCommands(n), compressed, nil
 }
 
-type message struct {
-	cmd        dota.EDemoCommands
-	tick       int64
-	compressed bool
-	body       []byte
-}
-
-func (m *message) String() string {
-	if len(m.body) > 30 {
-		return fmt.Sprintf("{cmd: %v tick: %v compressed: %t body(%d): %q...}", m.cmd, m.tick, m.compressed, len(m.body), m.body[:27])
-	}
-	return fmt.Sprintf("{cmd: %v tick: %v compressed: %t body(%d): %q}", m.cmd, m.tick, m.compressed, len(m.body), m.body)
-}
-
 func (p *parser) readMessage() (*message, error) {
 	cmd, compressed, err := p.readCommand()
 	if err != nil {
@@ -169,25 +153,4 @@ func (p *parser) readMessage() (*message, error) {
 	}
 
 	return &message{cmd, int64(tick), compressed, nil}, nil
-}
-
-func (p *parser) openPacket(msg *message) error {
-	if msg.cmd != dota.EDemoCommands_DEM_Packet {
-		return fmt.Errorf("wrong command type in openPacket: %v", msg.cmd)
-	}
-
-	if msg.compressed {
-		buf, err := snappy.Decode(nil, msg.body)
-		if err != nil {
-			return wrap(err, "open packet error: could not decode body")
-		}
-		msg.body = buf
-	}
-
-	packet := new(dota.CDemoPacket)
-	if err := proto.Unmarshal(msg.body, packet); err != nil {
-		return wrap(err, "onPacket unable to unmarshal message body")
-	}
-	fmt.Printf("\t{in: %d out: %d data: %x}\n", packet.GetSequenceIn(), packet.GetSequenceOutAck(), packet.GetData()[:8])
-	return nil
 }
