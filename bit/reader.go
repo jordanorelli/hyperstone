@@ -51,6 +51,9 @@ func (r *Reader) ReadBits(bits uint) (n uint64) {
 
 // ReadByte reads a single byte, regardless of alignment.
 func (r *Reader) ReadByte() (byte, error) {
+	if r.bits == 0 {
+		return r.src.ReadByte()
+	}
 	b := byte(r.ReadBits(8))
 	if err := r.Err(); err != nil {
 		return 0, err
@@ -68,6 +71,29 @@ func (r *Reader) Read(buf []byte) (int, error) {
 		buf[i] = b
 	}
 	return len(buf), nil
+}
+
+// ReadUbitVar reads a prefixed uint value. A prefix is 2 bits wide, followed
+// by the 4 least-significant bits, then a variable number of most-significant
+// bits based on the prefix.
+//
+// 00 - 0
+// 01 - 4
+// 10 - 8
+// 11 - 28
+func (r *Reader) ReadUBitVar() uint64 {
+	switch prefix := r.ReadBits(2); prefix {
+	case 0:
+		return r.ReadBits(4)
+	case 1:
+		return r.ReadBits(4) | r.ReadBits(4)<<4
+	case 2:
+		return r.ReadBits(4) | r.ReadBits(8)<<4
+	case 3:
+		return r.ReadBits(4) | r.ReadBits(28)<<4
+	default:
+		panic("not reached")
+	}
 }
 
 func (r *Reader) Err() error { return r.err }
