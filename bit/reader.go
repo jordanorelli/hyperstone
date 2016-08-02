@@ -96,4 +96,27 @@ func (r *Reader) ReadUBitVar() uint64 {
 	}
 }
 
+// ReadVarInt reads a variable length int value as a uint64. This is the binary
+// representation used by Protobuf. Each byte contributes 7 bits to the value
+// in little-endian order. The most-significant bit of each byte represents a
+// continuation bit.
+func (r *Reader) ReadVarInt() uint64 {
+	var (
+		x     uint64
+		b     uint64
+		shift uint
+	)
+	for ; shift < 64; shift += 7 {
+		b = r.ReadBits(8)
+		if r.Err() != nil {
+			return 0
+		}
+		x |= b & 0x7f << shift
+		if b&0x80 == 0 {
+			return x
+		}
+	}
+	return x
+}
+
 func (r *Reader) Err() error { return r.err }

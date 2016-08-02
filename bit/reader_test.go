@@ -104,16 +104,16 @@ func TestUbitVar(t *testing.T) {
 
 	r.ReadBits(2)
 	// 1000 1011 1010 1101 1111 0000 0000 1101
-	//            |||   |  ^--^                : most significant (1111)
-	//            ||^---^                      : least significant (0110)
+	//            |||   |  ^--^                : msb (1111)
+	//            ||^---^                      : lsb (0110)
 	//            ^^                           : prefix (01)
 	u = r.ReadUBitVar()
 	assert.Equal(uint64(0xf6), u)
 
 	r = NewBytesReader(badFood)
 	// 1000 1011 1010 1101 1111 0000 0000 1101
-	// |||   |^----+---^                       : most significant (1110 1011)
-	// ||^---^                                 : least significant (0010)
+	// |||   |^----+---^                       : msb (1110 1011)
+	// ||^---^                                 : lsb (0010)
 	// ^^                                      : prefix (10)
 	u = r.ReadUBitVar()
 	assert.Equal(uint64(0xeb2), u)
@@ -124,7 +124,52 @@ func TestUbitVar(t *testing.T) {
 	//      |||   |^----+----+----+----+----+----+---^   : msb (0111 1011 1001 1110
 	//      |||   |                                             1111 1011 1011)
 	//      ||^---^                                      : lsb (1000)
-	//      ^^                                           : prefix
+	//      ^^                                           : prefix (11)
 	u = r.ReadUBitVar()
 	assert.Equal(uint64(0x7b9efbb8), u)
+}
+
+func TestVarInt(t *testing.T) {
+	var (
+		assert = assert.New(t)
+		r      *Reader
+		u      uint64
+	)
+
+	r = NewBytesReader(badFood)
+	r.ReadBits(24)
+	// 1000 1011 1010 1101 1111 0000 0000 1101
+	//                               |^------^ : data
+	//                               ^         : stop
+	u = r.ReadVarInt()
+	assert.Equal(uint64(0xd), u)
+
+	r = NewBytesReader(badFood)
+	r.ReadBits(16)
+	// 1000 1011 1010 1101 1111 0000 0000 1101
+	//                     ||      | |^------^ : msb
+	//                     ||      | ^         : stop
+	//                     |^------^           : lsb
+	//                     ^                   : continue
+	// data bits:
+	// 0000 0110 1111 0000
+	// 0    6    f    0
+	u = r.ReadVarInt()
+	assert.Equal(uint64(0x6f0), u)
+
+	r = NewBytesReader(badFood)
+	// 1000 1011 1010 1101 1111 0000 0000 1101
+	// ||      | ||      | ||      | |^------^ : msb      (000 1101)
+	// ||      | ||      | ||      | ^         : stop
+	// ||      | ||      | |^------^           : data     (111 0000)
+	// ||      | ||      | ^                   : continue
+	// ||      | |^------^                     : data     (010 1101)
+	// ||      | ^                             : continue
+	// |^------^                               : lsb      (000 1011)
+	// ^                                       : continue
+	// data bits:
+	// 0001 1011 1100 0001 0110 1000 1011
+	// 1    b    c    1    6    8    b
+	u = r.ReadVarInt()
+	assert.Equal(uint64(0x1bc168b), u)
 }
