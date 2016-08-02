@@ -11,7 +11,8 @@ var (
 	badFood = []byte{0x8b, 0xad, 0xf0, 0x0d}
 )
 
-func TestRead(t *testing.T) {
+// test the bit-level reads
+func TestReadBits(t *testing.T) {
 	assert := assert.New(t)
 
 	var r *Reader
@@ -49,4 +50,23 @@ func TestRead(t *testing.T) {
 	// 1000 1011 1010 1101 1111 0000 0000 1101
 	//                            ^----------^
 	assert.Equal(uint64(0xd), r.ReadBits(10))
+}
+
+// test the Read calls, satisfying io.Reader
+func TestRead(t *testing.T) {
+	assert := assert.New(t)
+	var r *Reader
+
+	r = NewBytesReader(badFood)
+	// 1000 1011 1010 1101 1111 0000 0000 1101
+	r.ReadBits(1)
+	// 0001 0111 0101 1011 1110 0000 0001 101
+	buf := make([]byte, 3)
+
+	n, err := r.Read(buf)
+	assert.NoError(err)
+	assert.Equal(3, n)
+
+	expected := []byte{0x17, 0x5b, 0xe0}
+	assert.Equal(expected, buf)
 }

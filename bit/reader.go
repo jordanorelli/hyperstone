@@ -49,4 +49,25 @@ func (r *Reader) ReadBits(bits uint) (n uint64) {
 	return
 }
 
+// ReadByte reads a single byte, regardless of alignment.
+func (r *Reader) ReadByte() (byte, error) {
+	b := byte(r.ReadBits(8))
+	if err := r.Err(); err != nil {
+		return 0, err
+	}
+	return b, nil
+}
+
+// Read reads like an io.Reader, taking care of alignment internally.
+func (r *Reader) Read(buf []byte) (int, error) {
+	for i := 0; i < len(buf); i++ {
+		b, err := r.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+		buf[i] = b
+	}
+	return len(buf), nil
+}
+
 func (r *Reader) Err() error { return r.err }
