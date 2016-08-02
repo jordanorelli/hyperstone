@@ -9,6 +9,9 @@ import (
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
+// message represents the top-level envelope in the dota replay format. Each
+// datum is contained within a message envelope. Each message envelope is at
+// most 1<<16 bytes.
 type message struct {
 	cmd        dota.EDemoCommands
 	tick       int64

@@ -1,5 +1,7 @@
 package main
 
+//go:generate ./mkprotos
+
 import (
 	"compress/bzip2"
 	"flag"

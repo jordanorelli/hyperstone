@@ -6,6 +6,9 @@ echo "Did you update the GameTracking submodule? You want to do that."
 echo "clearing existing proto files in ./dota"
 rm dota/*.proto
 
+echo "clearing existing generated go files in ./dota"
+rm dota/*.pb.go
+
 echo "copying protos from GameTracking/Protobufs/dota"
 cp GameTracking/Protobufs/dota/*.proto ./dota
 
