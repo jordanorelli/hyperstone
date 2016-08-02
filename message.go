@@ -42,18 +42,7 @@ func (m *message) check(dump bool) error {
 	}
 
 	if dump {
-		shit := packet.GetData()[:4]
-		bb := newBitBuffer(packet.GetData())
-		type T struct {
-			t int32
-		}
-		var v T
-		v.t = int32(bb.readVarUint())
-		if bb.err != nil {
-			fmt.Printf("packet error: %v\n", bb.err)
-		} else {
-			fmt.Printf("{in: %d out: %d data: %v shit: %x}\n", packet.GetSequenceIn(), packet.GetSequenceOutAck(), v, shit)
-		}
+		fmt.Println("I broke packet dumping.")
 	}
 	return nil
 }
