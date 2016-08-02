@@ -3,4 +3,3 @@ import:
 - package: github.com/golang/protobuf
 - package: github.com/golang/snappy
 - package: github.com/stretchr/testify
-  version: ^1.1.3

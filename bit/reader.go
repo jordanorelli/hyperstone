@@ -40,11 +40,11 @@ func (r *Reader) ReadBits(bits uint) (n uint64) {
 			r.err = err
 			return 0
 		}
-		r.n <<= 8
-		r.n |= uint64(b)
+		r.n |= uint64(b) << r.bits
 		r.bits += 8
 	}
-	n = (r.n >> (r.bits - bits)) & ((1 << bits) - 1)
+	n = r.n & (1<<bits - 1)
+	r.n >>= bits
 	r.bits -= bits
 	return
 }
@@ -77,20 +77,20 @@ func (r *Reader) Read(buf []byte) (int, error) {
 // by the 4 least-significant bits, then a variable number of most-significant
 // bits based on the prefix.
 //
-// 00 - 0
-// 01 - 4
-// 10 - 8
-// 11 - 28
+// 00 - 4
+// 01 - 8
+// 10 - 12 (why 12? this really baffles me)
+// 11 - 32
 func (r *Reader) ReadUBitVar() uint64 {
-	switch prefix := r.ReadBits(2); prefix {
+	switch b := r.ReadBits(6); b >> 4 {
 	case 0:
-		return r.ReadBits(4)
+		return b & 0xf
 	case 1:
-		return r.ReadBits(4) | r.ReadBits(4)<<4
+		return b&0xf | r.ReadBits(4)<<4
 	case 2:
-		return r.ReadBits(4) | r.ReadBits(8)<<4
+		return b&0xf | r.ReadBits(8)<<4
 	case 3:
-		return r.ReadBits(4) | r.ReadBits(28)<<4
+		return b&0xf | r.ReadBits(28)<<4
 	default:
 		panic("not reached")
 	}
