@@ -133,7 +133,7 @@ func (p *parser) readCommand() (dota.EDemoCommands, bool, error) {
 	return dota.EDemoCommands(n), compressed, nil
 }
 
-func (p *parser) readMessage() (*message, error) {
+func (p *parser) readMessage() (*dataGram, error) {
 	cmd, compressed, err := p.readCommand()
 	if err != nil {
 		return nil, wrap(err, "readMessage couldn't get a command")
@@ -155,9 +155,9 @@ func (p *parser) readMessage() (*message, error) {
 			return nil, wrap(err, "readMessage couldn't read message body")
 		}
 		// TODO: pool these!
-		return &message{cmd, int64(tick), compressed, buf}, nil
+		return &dataGram{cmd, int64(tick), compressed, buf}, nil
 	}
 
 	// TODO: pool these!
-	return &message{cmd, int64(tick), compressed, nil}, nil
+	return &dataGram{cmd, int64(tick), compressed, nil}, nil
 }
