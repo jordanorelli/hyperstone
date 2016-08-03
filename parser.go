@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
@@ -48,6 +49,16 @@ func (p *parser) run() error {
 		case dota.EDemoCommands_DEM_Packet:
 			if err := msg.check(p.dumpPackets); err != nil {
 				fmt.Printf("error: %v\n", err)
+			}
+		default:
+			m := cmdFactory.BuildMessage(int(msg.cmd))
+			if m != nil {
+				err := proto.Unmarshal(msg.body, m)
+				if err != nil {
+					fmt.Printf("cmd unmarshal error: %v\n", err)
+				} else {
+					fmt.Println(m)
+				}
 			}
 		}
 	}

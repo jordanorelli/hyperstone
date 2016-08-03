@@ -68,8 +68,18 @@ func (m *message) check(dump bool) error {
 			if br.Err() != nil {
 				break
 			}
-			e := entity{t: uint32(t), size: uint32(s), body: b}
-			fmt.Printf("\t%v\n", e)
+			fmt.Printf("\t%v\n", entity{t: uint32(t), size: uint32(s), body: b})
+			e := entFactory.BuildMessage(int(t))
+			if e == nil {
+				fmt.Printf("\tno known entity for type id %d\n", int(t))
+				continue
+			}
+			err := proto.Unmarshal(b, e)
+			if err != nil {
+				fmt.Printf("entity unmarshal error: %v\n", err)
+			} else {
+				fmt.Printf("\t\t%v\n", e)
+			}
 		}
 	}
 	return nil
