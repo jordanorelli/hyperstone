@@ -240,6 +240,12 @@ func processPackage(name string, pkg *ast.Package) {
 
 // given an enum name, finds the appropriate message type
 func typeName(enumName string) string {
+	if skipped[enumName] {
+		return ""
+	}
+	if name, ok := specials[enumName]; ok {
+		return name
+	}
 	for prefix, replacement := range prefixes {
 		if strings.HasPrefix(enumName, prefix) {
 			candidate := strings.Replace(enumName, prefix, replacement, 1)
