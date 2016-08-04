@@ -29,6 +29,624 @@ import (
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
+type datagramType int32
+type entityType int32
+
+const (
+	EDemoCommands_DEM_Error                                datagramType = -1
+	EDemoCommands_DEM_Stop                                 datagramType = 0
+	EDemoCommands_DEM_FileHeader                           datagramType = 1
+	EDemoCommands_DEM_FileInfo                             datagramType = 2
+	EDemoCommands_DEM_SyncTick                             datagramType = 3
+	EDemoCommands_DEM_SendTables                           datagramType = 4
+	EDemoCommands_DEM_ClassInfo                            datagramType = 5
+	EDemoCommands_DEM_StringTables                         datagramType = 6
+	EDemoCommands_DEM_Packet                               datagramType = 7
+	EDemoCommands_DEM_SignonPacket                         datagramType = 8
+	EDemoCommands_DEM_ConsoleCmd                           datagramType = 9
+	EDemoCommands_DEM_CustomData                           datagramType = 10
+	EDemoCommands_DEM_CustomDataCallbacks                  datagramType = 11
+	EDemoCommands_DEM_UserCmd                              datagramType = 12
+	EDemoCommands_DEM_FullPacket                           datagramType = 13
+	EDemoCommands_DEM_SaveGame                             datagramType = 14
+	EDemoCommands_DEM_SpawnGroups                          datagramType = 15
+	NET_Messages_net_NOP                                   entityType   = 0
+	NET_Messages_net_Disconnect                            entityType   = 1
+	NET_Messages_net_SplitScreenUser                       entityType   = 3
+	NET_Messages_net_Tick                                  entityType   = 4
+	NET_Messages_net_StringCmd                             entityType   = 5
+	NET_Messages_net_SetConVar                             entityType   = 6
+	NET_Messages_net_SignonState                           entityType   = 7
+	NET_Messages_net_SpawnGroup_Load                       entityType   = 8
+	NET_Messages_net_SpawnGroup_ManifestUpdate             entityType   = 9
+	NET_Messages_net_SpawnGroup_SetCreationTick            entityType   = 11
+	NET_Messages_net_SpawnGroup_Unload                     entityType   = 12
+	NET_Messages_net_SpawnGroup_LoadCompleted              entityType   = 13
+	SVC_Messages_svc_ServerInfo                            entityType   = 40
+	SVC_Messages_svc_FlattenedSerializer                   entityType   = 41
+	SVC_Messages_svc_ClassInfo                             entityType   = 42
+	SVC_Messages_svc_SetPause                              entityType   = 43
+	SVC_Messages_svc_CreateStringTable                     entityType   = 44
+	SVC_Messages_svc_UpdateStringTable                     entityType   = 45
+	SVC_Messages_svc_VoiceInit                             entityType   = 46
+	SVC_Messages_svc_VoiceData                             entityType   = 47
+	SVC_Messages_svc_Print                                 entityType   = 48
+	SVC_Messages_svc_Sounds                                entityType   = 49
+	SVC_Messages_svc_SetView                               entityType   = 50
+	SVC_Messages_svc_ClearAllStringTables                  entityType   = 51
+	SVC_Messages_svc_CmdKeyValues                          entityType   = 52
+	SVC_Messages_svc_BSPDecal                              entityType   = 53
+	SVC_Messages_svc_SplitScreen                           entityType   = 54
+	SVC_Messages_svc_PacketEntities                        entityType   = 55
+	SVC_Messages_svc_Prefetch                              entityType   = 56
+	SVC_Messages_svc_Menu                                  entityType   = 57
+	SVC_Messages_svc_GetCvarValue                          entityType   = 58
+	SVC_Messages_svc_StopSound                             entityType   = 59
+	SVC_Messages_svc_PeerList                              entityType   = 60
+	SVC_Messages_svc_PacketReliable                        entityType   = 61
+	SVC_Messages_svc_HLTVStatus                            entityType   = 62
+	SVC_Messages_svc_ServerSteamID                         entityType   = 63
+	SVC_Messages_svc_FullFrameSplit                        entityType   = 70
+	EBaseUserMessages_UM_AchievementEvent                  entityType   = 101
+	EBaseUserMessages_UM_CloseCaption                      entityType   = 102
+	EBaseUserMessages_UM_CloseCaptionDirect                entityType   = 103
+	EBaseUserMessages_UM_CurrentTimescale                  entityType   = 104
+	EBaseUserMessages_UM_DesiredTimescale                  entityType   = 105
+	EBaseUserMessages_UM_Fade                              entityType   = 106
+	EBaseUserMessages_UM_GameTitle                         entityType   = 107
+	EBaseUserMessages_UM_HintText                          entityType   = 109
+	EBaseUserMessages_UM_HudMsg                            entityType   = 110
+	EBaseUserMessages_UM_HudText                           entityType   = 111
+	EBaseUserMessages_UM_KeyHintText                       entityType   = 112
+	EBaseUserMessages_UM_ColoredText                       entityType   = 113
+	EBaseUserMessages_UM_RequestState                      entityType   = 114
+	EBaseUserMessages_UM_ResetHUD                          entityType   = 115
+	EBaseUserMessages_UM_Rumble                            entityType   = 116
+	EBaseUserMessages_UM_SayText                           entityType   = 117
+	EBaseUserMessages_UM_SayText2                          entityType   = 118
+	EBaseUserMessages_UM_SayTextChannel                    entityType   = 119
+	EBaseUserMessages_UM_Shake                             entityType   = 120
+	EBaseUserMessages_UM_ShakeDir                          entityType   = 121
+	EBaseUserMessages_UM_TextMsg                           entityType   = 124
+	EBaseUserMessages_UM_ScreenTilt                        entityType   = 125
+	EBaseUserMessages_UM_Train                             entityType   = 126
+	EBaseUserMessages_UM_VGUIMenu                          entityType   = 127
+	EBaseUserMessages_UM_VoiceMask                         entityType   = 128
+	EBaseUserMessages_UM_VoiceSubtitle                     entityType   = 129
+	EBaseUserMessages_UM_SendAudio                         entityType   = 130
+	EBaseUserMessages_UM_ItemPickup                        entityType   = 131
+	EBaseUserMessages_UM_AmmoDenied                        entityType   = 132
+	EBaseUserMessages_UM_CrosshairAngle                    entityType   = 133
+	EBaseUserMessages_UM_ShowMenu                          entityType   = 134
+	EBaseUserMessages_UM_CreditsMsg                        entityType   = 135
+	EBaseEntityMessages_EM_PlayJingle                      entityType   = 136
+	EBaseEntityMessages_EM_ScreenOverlay                   entityType   = 137
+	EBaseEntityMessages_EM_RemoveAllDecals                 entityType   = 138
+	EBaseEntityMessages_EM_PropagateForce                  entityType   = 139
+	EBaseEntityMessages_EM_DoSpark                         entityType   = 140
+	EBaseEntityMessages_EM_FixAngle                        entityType   = 141
+	EBaseUserMessages_UM_CloseCaptionPlaceholder           entityType   = 142
+	EBaseUserMessages_UM_CameraTransition                  entityType   = 143
+	EBaseUserMessages_UM_AudioParameter                    entityType   = 144
+	EBaseGameEvents_GE_VDebugGameSessionIDEvent            entityType   = 200
+	EBaseGameEvents_GE_PlaceDecalEvent                     entityType   = 201
+	EBaseGameEvents_GE_ClearWorldDecalsEvent               entityType   = 202
+	EBaseGameEvents_GE_ClearEntityDecalsEvent              entityType   = 203
+	EBaseGameEvents_GE_ClearDecalsForSkeletonInstanceEvent entityType   = 204
+	EBaseGameEvents_GE_Source1LegacyGameEventList          entityType   = 205
+	EBaseGameEvents_GE_Source1LegacyListenEvents           entityType   = 206
+	EBaseGameEvents_GE_Source1LegacyGameEvent              entityType   = 207
+	EBaseGameEvents_GE_SosStartSoundEvent                  entityType   = 208
+	EBaseGameEvents_GE_SosStopSoundEvent                   entityType   = 209
+	EBaseGameEvents_GE_SosSetSoundEventParams              entityType   = 210
+	EBaseGameEvents_GE_SosSetLibraryStackFields            entityType   = 211
+	EBaseGameEvents_GE_SosStopSoundEventHash               entityType   = 212
+	ETEProtobufIds_TE_EffectDispatchId                     entityType   = 400
+	EDotaUserMessages_DOTA_UM_AIDebugLine                  entityType   = 465
+	EDotaUserMessages_DOTA_UM_ChatEvent                    entityType   = 466
+	EDotaUserMessages_DOTA_UM_CombatHeroPositions          entityType   = 467
+	EDotaUserMessages_DOTA_UM_CombatLogShowDeath           entityType   = 470
+	EDotaUserMessages_DOTA_UM_CreateLinearProjectile       entityType   = 471
+	EDotaUserMessages_DOTA_UM_DestroyLinearProjectile      entityType   = 472
+	EDotaUserMessages_DOTA_UM_DodgeTrackingProjectiles     entityType   = 473
+	EDotaUserMessages_DOTA_UM_GlobalLightColor             entityType   = 474
+	EDotaUserMessages_DOTA_UM_GlobalLightDirection         entityType   = 475
+	EDotaUserMessages_DOTA_UM_InvalidCommand               entityType   = 476
+	EDotaUserMessages_DOTA_UM_LocationPing                 entityType   = 477
+	EDotaUserMessages_DOTA_UM_MapLine                      entityType   = 478
+	EDotaUserMessages_DOTA_UM_MiniKillCamInfo              entityType   = 479
+	EDotaUserMessages_DOTA_UM_MinimapDebugPoint            entityType   = 480
+	EDotaUserMessages_DOTA_UM_MinimapEvent                 entityType   = 481
+	EDotaUserMessages_DOTA_UM_NevermoreRequiem             entityType   = 482
+	EDotaUserMessages_DOTA_UM_OverheadEvent                entityType   = 483
+	EDotaUserMessages_DOTA_UM_SetNextAutobuyItem           entityType   = 484
+	EDotaUserMessages_DOTA_UM_SharedCooldown               entityType   = 485
+	EDotaUserMessages_DOTA_UM_SpectatorPlayerClick         entityType   = 486
+	EDotaUserMessages_DOTA_UM_TutorialTipInfo              entityType   = 487
+	EDotaUserMessages_DOTA_UM_UnitEvent                    entityType   = 488
+	EDotaUserMessages_DOTA_UM_ParticleManager              entityType   = 489
+	EDotaUserMessages_DOTA_UM_BotChat                      entityType   = 490
+	EDotaUserMessages_DOTA_UM_HudError                     entityType   = 491
+	EDotaUserMessages_DOTA_UM_ItemPurchased                entityType   = 492
+	EDotaUserMessages_DOTA_UM_Ping                         entityType   = 493
+	EDotaUserMessages_DOTA_UM_ItemFound                    entityType   = 494
+	EDotaUserMessages_DOTA_UM_SwapVerify                   entityType   = 496
+	EDotaUserMessages_DOTA_UM_WorldLine                    entityType   = 497
+	EDotaUserMessages_DOTA_UM_TournamentDrop               entityType   = 498
+	EDotaUserMessages_DOTA_UM_ItemAlert                    entityType   = 499
+	EDotaUserMessages_DOTA_UM_HalloweenDrops               entityType   = 500
+	EDotaUserMessages_DOTA_UM_ChatWheel                    entityType   = 501
+	EDotaUserMessages_DOTA_UM_ReceivedXmasGift             entityType   = 502
+	EDotaUserMessages_DOTA_UM_UpdateSharedContent          entityType   = 503
+	EDotaUserMessages_DOTA_UM_TutorialRequestExp           entityType   = 504
+	EDotaUserMessages_DOTA_UM_TutorialPingMinimap          entityType   = 505
+	EDotaUserMessages_DOTA_UM_GamerulesStateChanged        entityType   = 506
+	EDotaUserMessages_DOTA_UM_ShowSurvey                   entityType   = 507
+	EDotaUserMessages_DOTA_UM_TutorialFade                 entityType   = 508
+	EDotaUserMessages_DOTA_UM_AddQuestLogEntry             entityType   = 509
+	EDotaUserMessages_DOTA_UM_SendStatPopup                entityType   = 510
+	EDotaUserMessages_DOTA_UM_TutorialFinish               entityType   = 511
+	EDotaUserMessages_DOTA_UM_SendRoshanPopup              entityType   = 512
+	EDotaUserMessages_DOTA_UM_SendGenericToolTip           entityType   = 513
+	EDotaUserMessages_DOTA_UM_SendFinalGold                entityType   = 514
+	EDotaUserMessages_DOTA_UM_CustomMsg                    entityType   = 515
+	EDotaUserMessages_DOTA_UM_CoachHUDPing                 entityType   = 516
+	EDotaUserMessages_DOTA_UM_ClientLoadGridNav            entityType   = 517
+	EDotaUserMessages_DOTA_UM_TE_Projectile                entityType   = 518
+	EDotaUserMessages_DOTA_UM_TE_ProjectileLoc             entityType   = 519
+	EDotaUserMessages_DOTA_UM_TE_DotaBloodImpact           entityType   = 520
+	EDotaUserMessages_DOTA_UM_TE_UnitAnimation             entityType   = 521
+	EDotaUserMessages_DOTA_UM_TE_UnitAnimationEnd          entityType   = 522
+	EDotaUserMessages_DOTA_UM_AbilityPing                  entityType   = 523
+	EDotaUserMessages_DOTA_UM_ShowGenericPopup             entityType   = 524
+	EDotaUserMessages_DOTA_UM_VoteStart                    entityType   = 525
+	EDotaUserMessages_DOTA_UM_VoteUpdate                   entityType   = 526
+	EDotaUserMessages_DOTA_UM_VoteEnd                      entityType   = 527
+	EDotaUserMessages_DOTA_UM_BoosterState                 entityType   = 528
+	EDotaUserMessages_DOTA_UM_WillPurchaseAlert            entityType   = 529
+	EDotaUserMessages_DOTA_UM_TutorialMinimapPosition      entityType   = 530
+	EDotaUserMessages_DOTA_UM_PlayerMMR                    entityType   = 531
+	EDotaUserMessages_DOTA_UM_AbilitySteal                 entityType   = 532
+	EDotaUserMessages_DOTA_UM_CourierKilledAlert           entityType   = 533
+	EDotaUserMessages_DOTA_UM_EnemyItemAlert               entityType   = 534
+	EDotaUserMessages_DOTA_UM_StatsMatchDetails            entityType   = 535
+	EDotaUserMessages_DOTA_UM_MiniTaunt                    entityType   = 536
+	EDotaUserMessages_DOTA_UM_BuyBackStateAlert            entityType   = 537
+	EDotaUserMessages_DOTA_UM_SpeechBubble                 entityType   = 538
+	EDotaUserMessages_DOTA_UM_CustomHeaderMessage          entityType   = 539
+	EDotaUserMessages_DOTA_UM_QuickBuyAlert                entityType   = 540
+	EDotaUserMessages_DOTA_UM_StatsHeroDetails             entityType   = 541
+	EDotaUserMessages_DOTA_UM_PredictionResult             entityType   = 542
+	EDotaUserMessages_DOTA_UM_ModifierAlert                entityType   = 543
+	EDotaUserMessages_DOTA_UM_HPManaAlert                  entityType   = 544
+	EDotaUserMessages_DOTA_UM_GlyphAlert                   entityType   = 545
+	EDotaUserMessages_DOTA_UM_BeastChat                    entityType   = 546
+	EDotaUserMessages_DOTA_UM_SpectatorPlayerUnitOrders    entityType   = 547
+	EDotaUserMessages_DOTA_UM_CustomHudElement_Create      entityType   = 548
+	EDotaUserMessages_DOTA_UM_CustomHudElement_Modify      entityType   = 549
+	EDotaUserMessages_DOTA_UM_CustomHudElement_Destroy     entityType   = 550
+	EDotaUserMessages_DOTA_UM_CompendiumState              entityType   = 551
+	EDotaUserMessages_DOTA_UM_ProjectionAbility            entityType   = 552
+	EDotaUserMessages_DOTA_UM_ProjectionEvent              entityType   = 553
+	EDotaUserMessages_DOTA_UM_CombatLogDataHLTV            entityType   = 554
+	EDotaUserMessages_DOTA_UM_XPAlert                      entityType   = 555
+	EDotaUserMessages_DOTA_UM_UpdateQuestProgress          entityType   = 556
+	EDotaUserMessages_DOTA_UM_MatchMetadata                entityType   = 557
+	EDotaUserMessages_DOTA_UM_QuestStatus                  entityType   = 559
+)
+
+func (d datagramType) String() string {
+	switch d {
+	case EDemoCommands_DEM_Stop:
+		return "EDemoCommands_DEM_Stop"
+	case EDemoCommands_DEM_FileHeader:
+		return "EDemoCommands_DEM_FileHeader"
+	case EDemoCommands_DEM_FileInfo:
+		return "EDemoCommands_DEM_FileInfo"
+	case EDemoCommands_DEM_SyncTick:
+		return "EDemoCommands_DEM_SyncTick"
+	case EDemoCommands_DEM_SendTables:
+		return "EDemoCommands_DEM_SendTables"
+	case EDemoCommands_DEM_ClassInfo:
+		return "EDemoCommands_DEM_ClassInfo"
+	case EDemoCommands_DEM_StringTables:
+		return "EDemoCommands_DEM_StringTables"
+	case EDemoCommands_DEM_Packet:
+		return "EDemoCommands_DEM_Packet"
+	case EDemoCommands_DEM_SignonPacket:
+		return "EDemoCommands_DEM_SignonPacket"
+	case EDemoCommands_DEM_ConsoleCmd:
+		return "EDemoCommands_DEM_ConsoleCmd"
+	case EDemoCommands_DEM_CustomData:
+		return "EDemoCommands_DEM_CustomData"
+	case EDemoCommands_DEM_CustomDataCallbacks:
+		return "EDemoCommands_DEM_CustomDataCallbacks"
+	case EDemoCommands_DEM_UserCmd:
+		return "EDemoCommands_DEM_UserCmd"
+	case EDemoCommands_DEM_FullPacket:
+		return "EDemoCommands_DEM_FullPacket"
+	case EDemoCommands_DEM_SaveGame:
+		return "EDemoCommands_DEM_SaveGame"
+	case EDemoCommands_DEM_SpawnGroups:
+		return "EDemoCommands_DEM_SpawnGroups"
+	default:
+		return "UnknownDatagramType"
+	}
+}
+
+func (e entityType) String() string {
+	switch e {
+	case NET_Messages_net_NOP:
+		return "NET_Messages_net_NOP"
+	case NET_Messages_net_Disconnect:
+		return "NET_Messages_net_Disconnect"
+	case NET_Messages_net_SplitScreenUser:
+		return "NET_Messages_net_SplitScreenUser"
+	case NET_Messages_net_Tick:
+		return "NET_Messages_net_Tick"
+	case NET_Messages_net_StringCmd:
+		return "NET_Messages_net_StringCmd"
+	case NET_Messages_net_SetConVar:
+		return "NET_Messages_net_SetConVar"
+	case NET_Messages_net_SignonState:
+		return "NET_Messages_net_SignonState"
+	case NET_Messages_net_SpawnGroup_Load:
+		return "NET_Messages_net_SpawnGroup_Load"
+	case NET_Messages_net_SpawnGroup_ManifestUpdate:
+		return "NET_Messages_net_SpawnGroup_ManifestUpdate"
+	case NET_Messages_net_SpawnGroup_SetCreationTick:
+		return "NET_Messages_net_SpawnGroup_SetCreationTick"
+	case NET_Messages_net_SpawnGroup_Unload:
+		return "NET_Messages_net_SpawnGroup_Unload"
+	case NET_Messages_net_SpawnGroup_LoadCompleted:
+		return "NET_Messages_net_SpawnGroup_LoadCompleted"
+	case SVC_Messages_svc_ServerInfo:
+		return "SVC_Messages_svc_ServerInfo"
+	case SVC_Messages_svc_FlattenedSerializer:
+		return "SVC_Messages_svc_FlattenedSerializer"
+	case SVC_Messages_svc_ClassInfo:
+		return "SVC_Messages_svc_ClassInfo"
+	case SVC_Messages_svc_SetPause:
+		return "SVC_Messages_svc_SetPause"
+	case SVC_Messages_svc_CreateStringTable:
+		return "SVC_Messages_svc_CreateStringTable"
+	case SVC_Messages_svc_UpdateStringTable:
+		return "SVC_Messages_svc_UpdateStringTable"
+	case SVC_Messages_svc_VoiceInit:
+		return "SVC_Messages_svc_VoiceInit"
+	case SVC_Messages_svc_VoiceData:
+		return "SVC_Messages_svc_VoiceData"
+	case SVC_Messages_svc_Print:
+		return "SVC_Messages_svc_Print"
+	case SVC_Messages_svc_Sounds:
+		return "SVC_Messages_svc_Sounds"
+	case SVC_Messages_svc_SetView:
+		return "SVC_Messages_svc_SetView"
+	case SVC_Messages_svc_ClearAllStringTables:
+		return "SVC_Messages_svc_ClearAllStringTables"
+	case SVC_Messages_svc_CmdKeyValues:
+		return "SVC_Messages_svc_CmdKeyValues"
+	case SVC_Messages_svc_BSPDecal:
+		return "SVC_Messages_svc_BSPDecal"
+	case SVC_Messages_svc_SplitScreen:
+		return "SVC_Messages_svc_SplitScreen"
+	case SVC_Messages_svc_PacketEntities:
+		return "SVC_Messages_svc_PacketEntities"
+	case SVC_Messages_svc_Prefetch:
+		return "SVC_Messages_svc_Prefetch"
+	case SVC_Messages_svc_Menu:
+		return "SVC_Messages_svc_Menu"
+	case SVC_Messages_svc_GetCvarValue:
+		return "SVC_Messages_svc_GetCvarValue"
+	case SVC_Messages_svc_StopSound:
+		return "SVC_Messages_svc_StopSound"
+	case SVC_Messages_svc_PeerList:
+		return "SVC_Messages_svc_PeerList"
+	case SVC_Messages_svc_PacketReliable:
+		return "SVC_Messages_svc_PacketReliable"
+	case SVC_Messages_svc_HLTVStatus:
+		return "SVC_Messages_svc_HLTVStatus"
+	case SVC_Messages_svc_ServerSteamID:
+		return "SVC_Messages_svc_ServerSteamID"
+	case SVC_Messages_svc_FullFrameSplit:
+		return "SVC_Messages_svc_FullFrameSplit"
+	case EBaseUserMessages_UM_AchievementEvent:
+		return "EBaseUserMessages_UM_AchievementEvent"
+	case EBaseUserMessages_UM_CloseCaption:
+		return "EBaseUserMessages_UM_CloseCaption"
+	case EBaseUserMessages_UM_CloseCaptionDirect:
+		return "EBaseUserMessages_UM_CloseCaptionDirect"
+	case EBaseUserMessages_UM_CurrentTimescale:
+		return "EBaseUserMessages_UM_CurrentTimescale"
+	case EBaseUserMessages_UM_DesiredTimescale:
+		return "EBaseUserMessages_UM_DesiredTimescale"
+	case EBaseUserMessages_UM_Fade:
+		return "EBaseUserMessages_UM_Fade"
+	case EBaseUserMessages_UM_GameTitle:
+		return "EBaseUserMessages_UM_GameTitle"
+	case EBaseUserMessages_UM_HintText:
+		return "EBaseUserMessages_UM_HintText"
+	case EBaseUserMessages_UM_HudMsg:
+		return "EBaseUserMessages_UM_HudMsg"
+	case EBaseUserMessages_UM_HudText:
+		return "EBaseUserMessages_UM_HudText"
+	case EBaseUserMessages_UM_KeyHintText:
+		return "EBaseUserMessages_UM_KeyHintText"
+	case EBaseUserMessages_UM_ColoredText:
+		return "EBaseUserMessages_UM_ColoredText"
+	case EBaseUserMessages_UM_RequestState:
+		return "EBaseUserMessages_UM_RequestState"
+	case EBaseUserMessages_UM_ResetHUD:
+		return "EBaseUserMessages_UM_ResetHUD"
+	case EBaseUserMessages_UM_Rumble:
+		return "EBaseUserMessages_UM_Rumble"
+	case EBaseUserMessages_UM_SayText:
+		return "EBaseUserMessages_UM_SayText"
+	case EBaseUserMessages_UM_SayText2:
+		return "EBaseUserMessages_UM_SayText2"
+	case EBaseUserMessages_UM_SayTextChannel:
+		return "EBaseUserMessages_UM_SayTextChannel"
+	case EBaseUserMessages_UM_Shake:
+		return "EBaseUserMessages_UM_Shake"
+	case EBaseUserMessages_UM_ShakeDir:
+		return "EBaseUserMessages_UM_ShakeDir"
+	case EBaseUserMessages_UM_TextMsg:
+		return "EBaseUserMessages_UM_TextMsg"
+	case EBaseUserMessages_UM_ScreenTilt:
+		return "EBaseUserMessages_UM_ScreenTilt"
+	case EBaseUserMessages_UM_Train:
+		return "EBaseUserMessages_UM_Train"
+	case EBaseUserMessages_UM_VGUIMenu:
+		return "EBaseUserMessages_UM_VGUIMenu"
+	case EBaseUserMessages_UM_VoiceMask:
+		return "EBaseUserMessages_UM_VoiceMask"
+	case EBaseUserMessages_UM_VoiceSubtitle:
+		return "EBaseUserMessages_UM_VoiceSubtitle"
+	case EBaseUserMessages_UM_SendAudio:
+		return "EBaseUserMessages_UM_SendAudio"
+	case EBaseUserMessages_UM_ItemPickup:
+		return "EBaseUserMessages_UM_ItemPickup"
+	case EBaseUserMessages_UM_AmmoDenied:
+		return "EBaseUserMessages_UM_AmmoDenied"
+	case EBaseUserMessages_UM_CrosshairAngle:
+		return "EBaseUserMessages_UM_CrosshairAngle"
+	case EBaseUserMessages_UM_ShowMenu:
+		return "EBaseUserMessages_UM_ShowMenu"
+	case EBaseUserMessages_UM_CreditsMsg:
+		return "EBaseUserMessages_UM_CreditsMsg"
+	case EBaseEntityMessages_EM_PlayJingle:
+		return "EBaseEntityMessages_EM_PlayJingle"
+	case EBaseEntityMessages_EM_ScreenOverlay:
+		return "EBaseEntityMessages_EM_ScreenOverlay"
+	case EBaseEntityMessages_EM_RemoveAllDecals:
+		return "EBaseEntityMessages_EM_RemoveAllDecals"
+	case EBaseEntityMessages_EM_PropagateForce:
+		return "EBaseEntityMessages_EM_PropagateForce"
+	case EBaseEntityMessages_EM_DoSpark:
+		return "EBaseEntityMessages_EM_DoSpark"
+	case EBaseEntityMessages_EM_FixAngle:
+		return "EBaseEntityMessages_EM_FixAngle"
+	case EBaseUserMessages_UM_CloseCaptionPlaceholder:
+		return "EBaseUserMessages_UM_CloseCaptionPlaceholder"
+	case EBaseUserMessages_UM_CameraTransition:
+		return "EBaseUserMessages_UM_CameraTransition"
+	case EBaseUserMessages_UM_AudioParameter:
+		return "EBaseUserMessages_UM_AudioParameter"
+	case EBaseGameEvents_GE_VDebugGameSessionIDEvent:
+		return "EBaseGameEvents_GE_VDebugGameSessionIDEvent"
+	case EBaseGameEvents_GE_PlaceDecalEvent:
+		return "EBaseGameEvents_GE_PlaceDecalEvent"
+	case EBaseGameEvents_GE_ClearWorldDecalsEvent:
+		return "EBaseGameEvents_GE_ClearWorldDecalsEvent"
+	case EBaseGameEvents_GE_ClearEntityDecalsEvent:
+		return "EBaseGameEvents_GE_ClearEntityDecalsEvent"
+	case EBaseGameEvents_GE_ClearDecalsForSkeletonInstanceEvent:
+		return "EBaseGameEvents_GE_ClearDecalsForSkeletonInstanceEvent"
+	case EBaseGameEvents_GE_Source1LegacyGameEventList:
+		return "EBaseGameEvents_GE_Source1LegacyGameEventList"
+	case EBaseGameEvents_GE_Source1LegacyListenEvents:
+		return "EBaseGameEvents_GE_Source1LegacyListenEvents"
+	case EBaseGameEvents_GE_Source1LegacyGameEvent:
+		return "EBaseGameEvents_GE_Source1LegacyGameEvent"
+	case EBaseGameEvents_GE_SosStartSoundEvent:
+		return "EBaseGameEvents_GE_SosStartSoundEvent"
+	case EBaseGameEvents_GE_SosStopSoundEvent:
+		return "EBaseGameEvents_GE_SosStopSoundEvent"
+	case EBaseGameEvents_GE_SosSetSoundEventParams:
+		return "EBaseGameEvents_GE_SosSetSoundEventParams"
+	case EBaseGameEvents_GE_SosSetLibraryStackFields:
+		return "EBaseGameEvents_GE_SosSetLibraryStackFields"
+	case EBaseGameEvents_GE_SosStopSoundEventHash:
+		return "EBaseGameEvents_GE_SosStopSoundEventHash"
+	case ETEProtobufIds_TE_EffectDispatchId:
+		return "ETEProtobufIds_TE_EffectDispatchId"
+	case EDotaUserMessages_DOTA_UM_AIDebugLine:
+		return "EDotaUserMessages_DOTA_UM_AIDebugLine"
+	case EDotaUserMessages_DOTA_UM_ChatEvent:
+		return "EDotaUserMessages_DOTA_UM_ChatEvent"
+	case EDotaUserMessages_DOTA_UM_CombatHeroPositions:
+		return "EDotaUserMessages_DOTA_UM_CombatHeroPositions"
+	case EDotaUserMessages_DOTA_UM_CombatLogShowDeath:
+		return "EDotaUserMessages_DOTA_UM_CombatLogShowDeath"
+	case EDotaUserMessages_DOTA_UM_CreateLinearProjectile:
+		return "EDotaUserMessages_DOTA_UM_CreateLinearProjectile"
+	case EDotaUserMessages_DOTA_UM_DestroyLinearProjectile:
+		return "EDotaUserMessages_DOTA_UM_DestroyLinearProjectile"
+	case EDotaUserMessages_DOTA_UM_DodgeTrackingProjectiles:
+		return "EDotaUserMessages_DOTA_UM_DodgeTrackingProjectiles"
+	case EDotaUserMessages_DOTA_UM_GlobalLightColor:
+		return "EDotaUserMessages_DOTA_UM_GlobalLightColor"
+	case EDotaUserMessages_DOTA_UM_GlobalLightDirection:
+		return "EDotaUserMessages_DOTA_UM_GlobalLightDirection"
+	case EDotaUserMessages_DOTA_UM_InvalidCommand:
+		return "EDotaUserMessages_DOTA_UM_InvalidCommand"
+	case EDotaUserMessages_DOTA_UM_LocationPing:
+		return "EDotaUserMessages_DOTA_UM_LocationPing"
+	case EDotaUserMessages_DOTA_UM_MapLine:
+		return "EDotaUserMessages_DOTA_UM_MapLine"
+	case EDotaUserMessages_DOTA_UM_MiniKillCamInfo:
+		return "EDotaUserMessages_DOTA_UM_MiniKillCamInfo"
+	case EDotaUserMessages_DOTA_UM_MinimapDebugPoint:
+		return "EDotaUserMessages_DOTA_UM_MinimapDebugPoint"
+	case EDotaUserMessages_DOTA_UM_MinimapEvent:
+		return "EDotaUserMessages_DOTA_UM_MinimapEvent"
+	case EDotaUserMessages_DOTA_UM_NevermoreRequiem:
+		return "EDotaUserMessages_DOTA_UM_NevermoreRequiem"
+	case EDotaUserMessages_DOTA_UM_OverheadEvent:
+		return "EDotaUserMessages_DOTA_UM_OverheadEvent"
+	case EDotaUserMessages_DOTA_UM_SetNextAutobuyItem:
+		return "EDotaUserMessages_DOTA_UM_SetNextAutobuyItem"
+	case EDotaUserMessages_DOTA_UM_SharedCooldown:
+		return "EDotaUserMessages_DOTA_UM_SharedCooldown"
+	case EDotaUserMessages_DOTA_UM_SpectatorPlayerClick:
+		return "EDotaUserMessages_DOTA_UM_SpectatorPlayerClick"
+	case EDotaUserMessages_DOTA_UM_TutorialTipInfo:
+		return "EDotaUserMessages_DOTA_UM_TutorialTipInfo"
+	case EDotaUserMessages_DOTA_UM_UnitEvent:
+		return "EDotaUserMessages_DOTA_UM_UnitEvent"
+	case EDotaUserMessages_DOTA_UM_ParticleManager:
+		return "EDotaUserMessages_DOTA_UM_ParticleManager"
+	case EDotaUserMessages_DOTA_UM_BotChat:
+		return "EDotaUserMessages_DOTA_UM_BotChat"
+	case EDotaUserMessages_DOTA_UM_HudError:
+		return "EDotaUserMessages_DOTA_UM_HudError"
+	case EDotaUserMessages_DOTA_UM_ItemPurchased:
+		return "EDotaUserMessages_DOTA_UM_ItemPurchased"
+	case EDotaUserMessages_DOTA_UM_Ping:
+		return "EDotaUserMessages_DOTA_UM_Ping"
+	case EDotaUserMessages_DOTA_UM_ItemFound:
+		return "EDotaUserMessages_DOTA_UM_ItemFound"
+	case EDotaUserMessages_DOTA_UM_SwapVerify:
+		return "EDotaUserMessages_DOTA_UM_SwapVerify"
+	case EDotaUserMessages_DOTA_UM_WorldLine:
+		return "EDotaUserMessages_DOTA_UM_WorldLine"
+	case EDotaUserMessages_DOTA_UM_TournamentDrop:
+		return "EDotaUserMessages_DOTA_UM_TournamentDrop"
+	case EDotaUserMessages_DOTA_UM_ItemAlert:
+		return "EDotaUserMessages_DOTA_UM_ItemAlert"
+	case EDotaUserMessages_DOTA_UM_HalloweenDrops:
+		return "EDotaUserMessages_DOTA_UM_HalloweenDrops"
+	case EDotaUserMessages_DOTA_UM_ChatWheel:
+		return "EDotaUserMessages_DOTA_UM_ChatWheel"
+	case EDotaUserMessages_DOTA_UM_ReceivedXmasGift:
+		return "EDotaUserMessages_DOTA_UM_ReceivedXmasGift"
+	case EDotaUserMessages_DOTA_UM_UpdateSharedContent:
+		return "EDotaUserMessages_DOTA_UM_UpdateSharedContent"
+	case EDotaUserMessages_DOTA_UM_TutorialRequestExp:
+		return "EDotaUserMessages_DOTA_UM_TutorialRequestExp"
+	case EDotaUserMessages_DOTA_UM_TutorialPingMinimap:
+		return "EDotaUserMessages_DOTA_UM_TutorialPingMinimap"
+	case EDotaUserMessages_DOTA_UM_GamerulesStateChanged:
+		return "EDotaUserMessages_DOTA_UM_GamerulesStateChanged"
+	case EDotaUserMessages_DOTA_UM_ShowSurvey:
+		return "EDotaUserMessages_DOTA_UM_ShowSurvey"
+	case EDotaUserMessages_DOTA_UM_TutorialFade:
+		return "EDotaUserMessages_DOTA_UM_TutorialFade"
+	case EDotaUserMessages_DOTA_UM_AddQuestLogEntry:
+		return "EDotaUserMessages_DOTA_UM_AddQuestLogEntry"
+	case EDotaUserMessages_DOTA_UM_SendStatPopup:
+		return "EDotaUserMessages_DOTA_UM_SendStatPopup"
+	case EDotaUserMessages_DOTA_UM_TutorialFinish:
+		return "EDotaUserMessages_DOTA_UM_TutorialFinish"
+	case EDotaUserMessages_DOTA_UM_SendRoshanPopup:
+		return "EDotaUserMessages_DOTA_UM_SendRoshanPopup"
+	case EDotaUserMessages_DOTA_UM_SendGenericToolTip:
+		return "EDotaUserMessages_DOTA_UM_SendGenericToolTip"
+	case EDotaUserMessages_DOTA_UM_SendFinalGold:
+		return "EDotaUserMessages_DOTA_UM_SendFinalGold"
+	case EDotaUserMessages_DOTA_UM_CustomMsg:
+		return "EDotaUserMessages_DOTA_UM_CustomMsg"
+	case EDotaUserMessages_DOTA_UM_CoachHUDPing:
+		return "EDotaUserMessages_DOTA_UM_CoachHUDPing"
+	case EDotaUserMessages_DOTA_UM_ClientLoadGridNav:
+		return "EDotaUserMessages_DOTA_UM_ClientLoadGridNav"
+	case EDotaUserMessages_DOTA_UM_TE_Projectile:
+		return "EDotaUserMessages_DOTA_UM_TE_Projectile"
+	case EDotaUserMessages_DOTA_UM_TE_ProjectileLoc:
+		return "EDotaUserMessages_DOTA_UM_TE_ProjectileLoc"
+	case EDotaUserMessages_DOTA_UM_TE_DotaBloodImpact:
+		return "EDotaUserMessages_DOTA_UM_TE_DotaBloodImpact"
+	case EDotaUserMessages_DOTA_UM_TE_UnitAnimation:
+		return "EDotaUserMessages_DOTA_UM_TE_UnitAnimation"
+	case EDotaUserMessages_DOTA_UM_TE_UnitAnimationEnd:
+		return "EDotaUserMessages_DOTA_UM_TE_UnitAnimationEnd"
+	case EDotaUserMessages_DOTA_UM_AbilityPing:
+		return "EDotaUserMessages_DOTA_UM_AbilityPing"
+	case EDotaUserMessages_DOTA_UM_ShowGenericPopup:
+		return "EDotaUserMessages_DOTA_UM_ShowGenericPopup"
+	case EDotaUserMessages_DOTA_UM_VoteStart:
+		return "EDotaUserMessages_DOTA_UM_VoteStart"
+	case EDotaUserMessages_DOTA_UM_VoteUpdate:
+		return "EDotaUserMessages_DOTA_UM_VoteUpdate"
+	case EDotaUserMessages_DOTA_UM_VoteEnd:
+		return "EDotaUserMessages_DOTA_UM_VoteEnd"
+	case EDotaUserMessages_DOTA_UM_BoosterState:
+		return "EDotaUserMessages_DOTA_UM_BoosterState"
+	case EDotaUserMessages_DOTA_UM_WillPurchaseAlert:
+		return "EDotaUserMessages_DOTA_UM_WillPurchaseAlert"
+	case EDotaUserMessages_DOTA_UM_TutorialMinimapPosition:
+		return "EDotaUserMessages_DOTA_UM_TutorialMinimapPosition"
+	case EDotaUserMessages_DOTA_UM_PlayerMMR:
+		return "EDotaUserMessages_DOTA_UM_PlayerMMR"
+	case EDotaUserMessages_DOTA_UM_AbilitySteal:
+		return "EDotaUserMessages_DOTA_UM_AbilitySteal"
+	case EDotaUserMessages_DOTA_UM_CourierKilledAlert:
+		return "EDotaUserMessages_DOTA_UM_CourierKilledAlert"
+	case EDotaUserMessages_DOTA_UM_EnemyItemAlert:
+		return "EDotaUserMessages_DOTA_UM_EnemyItemAlert"
+	case EDotaUserMessages_DOTA_UM_StatsMatchDetails:
+		return "EDotaUserMessages_DOTA_UM_StatsMatchDetails"
+	case EDotaUserMessages_DOTA_UM_MiniTaunt:
+		return "EDotaUserMessages_DOTA_UM_MiniTaunt"
+	case EDotaUserMessages_DOTA_UM_BuyBackStateAlert:
+		return "EDotaUserMessages_DOTA_UM_BuyBackStateAlert"
+	case EDotaUserMessages_DOTA_UM_SpeechBubble:
+		return "EDotaUserMessages_DOTA_UM_SpeechBubble"
+	case EDotaUserMessages_DOTA_UM_CustomHeaderMessage:
+		return "EDotaUserMessages_DOTA_UM_CustomHeaderMessage"
+	case EDotaUserMessages_DOTA_UM_QuickBuyAlert:
+		return "EDotaUserMessages_DOTA_UM_QuickBuyAlert"
+	case EDotaUserMessages_DOTA_UM_StatsHeroDetails:
+		return "EDotaUserMessages_DOTA_UM_StatsHeroDetails"
+	case EDotaUserMessages_DOTA_UM_PredictionResult:
+		return "EDotaUserMessages_DOTA_UM_PredictionResult"
+	case EDotaUserMessages_DOTA_UM_ModifierAlert:
+		return "EDotaUserMessages_DOTA_UM_ModifierAlert"
+	case EDotaUserMessages_DOTA_UM_HPManaAlert:
+		return "EDotaUserMessages_DOTA_UM_HPManaAlert"
+	case EDotaUserMessages_DOTA_UM_GlyphAlert:
+		return "EDotaUserMessages_DOTA_UM_GlyphAlert"
+	case EDotaUserMessages_DOTA_UM_BeastChat:
+		return "EDotaUserMessages_DOTA_UM_BeastChat"
+	case EDotaUserMessages_DOTA_UM_SpectatorPlayerUnitOrders:
+		return "EDotaUserMessages_DOTA_UM_SpectatorPlayerUnitOrders"
+	case EDotaUserMessages_DOTA_UM_CustomHudElement_Create:
+		return "EDotaUserMessages_DOTA_UM_CustomHudElement_Create"
+	case EDotaUserMessages_DOTA_UM_CustomHudElement_Modify:
+		return "EDotaUserMessages_DOTA_UM_CustomHudElement_Modify"
+	case EDotaUserMessages_DOTA_UM_CustomHudElement_Destroy:
+		return "EDotaUserMessages_DOTA_UM_CustomHudElement_Destroy"
+	case EDotaUserMessages_DOTA_UM_CompendiumState:
+		return "EDotaUserMessages_DOTA_UM_CompendiumState"
+	case EDotaUserMessages_DOTA_UM_ProjectionAbility:
+		return "EDotaUserMessages_DOTA_UM_ProjectionAbility"
+	case EDotaUserMessages_DOTA_UM_ProjectionEvent:
+		return "EDotaUserMessages_DOTA_UM_ProjectionEvent"
+	case EDotaUserMessages_DOTA_UM_CombatLogDataHLTV:
+		return "EDotaUserMessages_DOTA_UM_CombatLogDataHLTV"
+	case EDotaUserMessages_DOTA_UM_XPAlert:
+		return "EDotaUserMessages_DOTA_UM_XPAlert"
+	case EDotaUserMessages_DOTA_UM_UpdateQuestProgress:
+		return "EDotaUserMessages_DOTA_UM_UpdateQuestProgress"
+	case EDotaUserMessages_DOTA_UM_MatchMetadata:
+		return "EDotaUserMessages_DOTA_UM_MatchMetadata"
+	case EDotaUserMessages_DOTA_UM_QuestStatus:
+		return "EDotaUserMessages_DOTA_UM_QuestStatus"
+	default:
+		return "UnknownEntityType"
+	}
+}
+
 type protoFactory map[int]func() proto.Message
 
 func (p protoFactory) BuildMessage(id int) proto.Message {
@@ -137,6 +755,7 @@ var entFactory = protoFactory{
 	142: func() proto.Message { return new(dota.CUserMessageCloseCaptionPlaceholder) },
 	143: func() proto.Message { return new(dota.CUserMessageCameraTransition) },
 	144: func() proto.Message { return new(dota.CUserMessageAudioParameter) },
+	200: func() proto.Message { return new(dota.CMsgVDebugGameSessionIDEvent) },
 	201: func() proto.Message { return new(dota.CMsgPlaceDecalEvent) },
 	202: func() proto.Message { return new(dota.CMsgClearWorldDecalsEvent) },
 	203: func() proto.Message { return new(dota.CMsgClearEntityDecalsEvent) },

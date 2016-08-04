@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
-	"github.com/jordanorelli/hyperstone/dota"
 )
 
 type parser struct {
@@ -53,7 +52,7 @@ func (p *parser) run() error {
 		}
 
 		switch gram.cmd {
-		case dota.EDemoCommands_DEM_Packet:
+		case EDemoCommands_DEM_Packet:
 			if err := gram.check(p.dumpPackets); err != nil {
 				fmt.Printf("error: %v\n", err)
 			}
@@ -124,10 +123,10 @@ func (p *parser) checkHeader() (bool, error) {
 	return string(buf) == replayHeader, nil
 }
 
-func (p *parser) readCommand() (dota.EDemoCommands, bool, error) {
+func (p *parser) readCommand() (datagramType, bool, error) {
 	n, err := p.decodeVarint()
 	if err != nil {
-		return dota.EDemoCommands_DEM_Error, false, wrap(err, "readCommand couldn't read varint")
+		return EDemoCommands_DEM_Error, false, wrap(err, "readCommand couldn't read varint")
 	}
 
 	compressed := false
@@ -135,7 +134,7 @@ func (p *parser) readCommand() (dota.EDemoCommands, bool, error) {
 		compressed = true
 		n &^= 0x40
 	}
-	return dota.EDemoCommands(n), compressed, nil
+	return datagramType(n), compressed, nil
 }
 
 func (p *parser) readDatagram() (*dataGram, error) {

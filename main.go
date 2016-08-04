@@ -1,6 +1,6 @@
 package main
 
-//go:generate ./mkprotos
+// go:generate ./mkprotos
 //go:generate go run ./gen/main.go ./dota
 
 import (

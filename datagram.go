@@ -12,7 +12,7 @@ import (
 // datagram represents the top-level envelope in the dota replay format. All
 // data in the replay file is packed into datagram frames of at most 65kb.
 type dataGram struct {
-	cmd  dota.EDemoCommands
+	cmd  datagramType
 	tick int64
 	body []byte
 }
@@ -25,7 +25,7 @@ func (g dataGram) String() string {
 }
 
 func (g *dataGram) check(dump bool) error {
-	if g.cmd != dota.EDemoCommands_DEM_Packet {
+	if g.cmd != EDemoCommands_DEM_Packet {
 		return fmt.Errorf("wrong command type in openPacket: %v", g.cmd)
 	}
 
@@ -49,7 +49,7 @@ func (g *dataGram) check(dump bool) error {
 			return err
 		}
 		if dump {
-			fmt.Printf("\t%v\n", entity{t: uint32(t), size: uint32(s), body: b})
+			fmt.Printf("\t%v\n", entity{t: entityType(t), size: uint32(s), body: b})
 		}
 		e := entFactory.BuildMessage(int(t))
 		if e == nil {

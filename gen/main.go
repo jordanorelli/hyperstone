@@ -19,8 +19,8 @@ import (
 var (
 	messageTypes    = make(map[string]bool)
 	enumTypes       = make(map[string]bool)
-	entityTypes     = make(map[int]string)
-	cmdTypes        = make(map[int]string)
+	entityTypes     = make(typeMap)
+	cmdTypes        = make(typeMap)
 	cmdEnumType     = "EDemoCommands"
 	entityEnumTypes = map[string]bool{
 		"NET_Messages":        true,
@@ -80,6 +80,41 @@ import (
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
+type datagramType int32
+type entityType int32
+
+const (
+	EDemoCommands_DEM_Error datagramType = -1
+{{- range $id, $spec := .Commands }}
+	{{$spec.EnumName}} datagramType = {{$id}}
+{{- end }}
+{{- range $id, $spec := .Entities }}
+	{{$spec.EnumName}} entityType = {{$id}}
+{{- end }}
+)
+
+func (d datagramType) String() string {
+	switch d {
+{{- range $id, $spec := .Commands }}
+	case {{$spec.EnumName}}:
+		return "{{$spec.EnumName}}"
+{{- end }}
+	default:
+		return "UnknownDatagramType"
+	}
+}
+
+func (e entityType) String() string {
+	switch e {
+{{- range $id, $spec := .Entities }}
+	case {{$spec.EnumName}}:
+		return "{{$spec.EnumName}}"
+{{- end }}
+	default:
+		return "UnknownEntityType"
+	}
+}
+
 type protoFactory map[int]func() proto.Message
 
 func (p protoFactory) BuildMessage(id int) proto.Message {
@@ -91,18 +126,36 @@ func (p protoFactory) BuildMessage(id int) proto.Message {
 }
 
 var cmdFactory = protoFactory{
-{{- range $id, $name := .Commands }}
-	{{$id}}: func() proto.Message { return new(dota.{{$name}}) },
+{{- range $id, $spec := .Commands }}
+	{{$id}}: func() proto.Message { return new(dota.{{$spec.TypeName}}) },
 {{- end }}
 }
 
 var entFactory = protoFactory{
-{{- range $id, $name := .Entities }}
-	{{$id}}: func() proto.Message { return new(dota.{{$name}}) },
+{{- range $id, $spec := .Entities }}
+	{{$id}}: func() proto.Message { return new(dota.{{$spec.TypeName}}) },
 {{- end }}
 }
 `
 )
+
+type messageSpec struct {
+	EnumName string
+	TypeName string
+}
+
+type typeMap map[int]messageSpec
+
+func (m typeMap) fillTypeNames() {
+	for id, spec := range m {
+		spec.TypeName = typeName(spec.EnumName)
+		if spec.TypeName == "" {
+			delete(m, id)
+		} else {
+			m[id] = spec
+		}
+	}
+}
 
 func ensureNewline(t string) string {
 	if strings.HasSuffix(t, "\n") {
@@ -165,9 +218,9 @@ func processValueSpec(spec *ast.ValueSpec) {
 		}
 
 		if isEntityType {
-			entityTypes[n] = name.Name
+			entityTypes[n] = messageSpec{EnumName: name.Name}
 		} else {
-			cmdTypes[n] = name.Name
+			cmdTypes[n] = messageSpec{EnumName: name.Name}
 		}
 	}
 }
@@ -261,30 +314,15 @@ func main() {
 		processPackage(name, pkg)
 	}
 
-	type typeMap map[int]string
+	cmdTypes.fillTypeNames()
+	entityTypes.fillTypeNames()
 
-	type context struct {
+	var ctx = struct {
 		Commands typeMap
 		Entities typeMap
-	}
-
-	ctx := context{make(typeMap), make(typeMap)}
-
-	for id, name := range cmdTypes {
-		realName := typeName(name)
-		if realName == "" {
-			fmt.Printf("no typename known for command enum name %s (%d)\n", name, id)
-			continue
-		}
-		ctx.Commands[id] = realName
-	}
-	for id, name := range entityTypes {
-		realName := typeName(name)
-		if realName == "" {
-			fmt.Printf("no typename known for entity enum name %s (%d)\n", name, id)
-			continue
-		}
-		ctx.Entities[id] = realName
+	}{
+		Commands: cmdTypes,
+		Entities: entityTypes,
 	}
 
 	t, err := template.New("out.go").Parse(tpl)
@@ -299,6 +337,7 @@ func main() {
 
 	source, err := format.Source(buf.Bytes())
 	if err != nil {
+		fmt.Println(string(buf.Bytes()))
 		bail(1, "fmt error: %v", err)
 	}
 
