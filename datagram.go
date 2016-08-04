@@ -53,7 +53,7 @@ func (g *dataGram) check(dump bool) error {
 		}
 		e := entFactory.BuildMessage(int(t))
 		if e == nil {
-			fmt.Printf("\tno known entity for type id %d\n", int(t))
+			fmt.Printf("\tno known entity for type id %d size: %d\n", int(t), len(b))
 			continue
 		}
 		err := proto.Unmarshal(b, e)

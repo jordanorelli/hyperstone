@@ -48,6 +48,7 @@ var cmdFactory = protoFactory{
 	5:  func() proto.Message { return new(dota.CDemoClassInfo) },
 	6:  func() proto.Message { return new(dota.CDemoStringTables) },
 	7:  func() proto.Message { return new(dota.CDemoPacket) },
+	8:  func() proto.Message { return new(dota.CDemoPacket) },
 	9:  func() proto.Message { return new(dota.CDemoConsoleCmd) },
 	10: func() proto.Message { return new(dota.CDemoCustomData) },
 	11: func() proto.Message { return new(dota.CDemoCustomDataCallbacks) },

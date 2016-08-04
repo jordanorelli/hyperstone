@@ -46,17 +46,7 @@ var (
 		"EDotaUserMessages_DOTA_UM_TournamentDrop":    "CMsgGCToClientTournamentItemDrop",
 		"EDotaUserMessages_DOTA_UM_MatchMetadata":     "CDOTAClientMsg_MatchMetadata",
 		"ETEProtobufIds_TE_EffectDispatchId":          "CMsgTEEffectDispatch",
-	}
-	skipped = map[string]bool{
-		"EDemoCommands_DEM_IsCompressed":                  true,
-		"EDemoCommands_DEM_Max":                           true,
-		"EDotaUserMessages_DOTA_UM_MatchDetails":          true,
-		"EBaseUserMessages_UM_ParticleManager":            true,
-		"EBaseUserMessages_UM_CustomGameEvent":            true,
-		"EDotaUserMessages_DOTA_UM_AddUnitToSelection":    true,
-		"EBaseUserMessages_UM_HudError":                   true,
-		"EDotaUserMessages_DOTA_UM_CombatLogData":         true,
-		"EDotaUserMessages_DOTA_UM_CharacterSpeakConcept": true,
+		"EDemoCommands_DEM_SignonPacket":              "CDemoPacket",
 	}
 	// EBaseUserMessages_UM_HandHapticPulse
 	tpl = `package main
@@ -240,9 +230,6 @@ func processPackage(name string, pkg *ast.Package) {
 
 // given an enum name, finds the appropriate message type
 func typeName(enumName string) string {
-	if skipped[enumName] {
-		return ""
-	}
 	if name, ok := specials[enumName]; ok {
 		return name
 	}
@@ -286,6 +273,7 @@ func main() {
 	for id, name := range cmdTypes {
 		realName := typeName(name)
 		if realName == "" {
+			fmt.Printf("no typename known for command enum name %s (%d)\n", name, id)
 			continue
 		}
 		ctx.Commands[id] = realName
@@ -293,6 +281,7 @@ func main() {
 	for id, name := range entityTypes {
 		realName := typeName(name)
 		if realName == "" {
+			fmt.Printf("no typename known for entity enum name %s (%d)\n", name, id)
 			continue
 		}
 		ctx.Entities[id] = realName
