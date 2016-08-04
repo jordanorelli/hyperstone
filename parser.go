@@ -57,7 +57,7 @@ func (p *parser) run() error {
 				fmt.Printf("error: %v\n", err)
 			}
 		default:
-			m := cmdFactory.BuildMessage(int(gram.cmd))
+			m := messages.BuildDatagram(gram.cmd)
 			if m != nil {
 				err := proto.Unmarshal(gram.body, m)
 				if err != nil {
@@ -123,10 +123,13 @@ func (p *parser) checkHeader() (bool, error) {
 	return string(buf) == replayHeader, nil
 }
 
-func (p *parser) readCommand() (datagramType, bool, error) {
+// reads the next datagram type indicator off the wire. Also looks for a
+// compression flag, returning true if the contents to follow are snappy
+// compressed, false otherwise.
+func (p *parser) readDatagramType() (datagramType, bool, error) {
 	n, err := p.decodeVarint()
 	if err != nil {
-		return EDemoCommands_DEM_Error, false, wrap(err, "readCommand couldn't read varint")
+		return EDemoCommands_DEM_Error, false, wrap(err, "readDatagramType couldn't read varint")
 	}
 
 	compressed := false
@@ -138,7 +141,7 @@ func (p *parser) readCommand() (datagramType, bool, error) {
 }
 
 func (p *parser) readDatagram() (*dataGram, error) {
-	cmd, compressed, err := p.readCommand()
+	cmd, compressed, err := p.readDatagramType()
 	if err != nil {
 		return nil, wrap(err, "readDatagram couldn't get a command")
 	}

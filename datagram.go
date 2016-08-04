@@ -36,7 +36,7 @@ func (g *dataGram) check(dump bool) error {
 
 	br := bit.NewBytesReader(packet.GetData())
 	for {
-		t := br.ReadUBitVar()
+		t := entityType(br.ReadUBitVar())
 		s := br.ReadVarInt()
 		b := make([]byte, s)
 		br.Read(b)
@@ -49,9 +49,9 @@ func (g *dataGram) check(dump bool) error {
 			return err
 		}
 		if dump {
-			fmt.Printf("\t%v\n", entity{t: entityType(t), size: uint32(s), body: b})
+			fmt.Printf("\t%v\n", entity{t: t, size: uint32(s), body: b})
 		}
-		e := entFactory.BuildMessage(int(t))
+		e := messages.BuildEntity(t)
 		if e == nil {
 			fmt.Printf("\tno known entity for type id %d size: %d\n", int(t), len(b))
 			continue

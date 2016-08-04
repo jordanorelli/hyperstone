@@ -115,26 +115,41 @@ func (e entityType) String() string {
 	}
 }
 
-type protoFactory map[int]func() proto.Message
+type datagramFactory map[datagramType]func() proto.Message
+type entityFactory map[entityType]func() proto.Message
 
-func (p protoFactory) BuildMessage(id int) proto.Message {
-	fn, ok := p[id]
+type messageFactory struct {
+	datagrams datagramFactory
+	entities entityFactory
+}
+
+func (m *messageFactory) BuildDatagram(id datagramType) proto.Message {
+	fn, ok := m.datagrams[id]
 	if !ok {
 		return nil
 	}
 	return fn()
 }
 
-var cmdFactory = protoFactory{
-{{- range $id, $spec := .Commands }}
-	{{$id}}: func() proto.Message { return new(dota.{{$spec.TypeName}}) },
-{{- end }}
+func (m *messageFactory) BuildEntity(id entityType) proto.Message {
+	fn, ok := m.entities[id]
+	if !ok {
+		return nil
+	}
+	return fn()
 }
 
-var entFactory = protoFactory{
-{{- range $id, $spec := .Entities }}
-	{{$id}}: func() proto.Message { return new(dota.{{$spec.TypeName}}) },
-{{- end }}
+var messages = messageFactory{
+	datagramFactory{
+	{{- range $id, $spec := .Commands }}
+		{{$spec.EnumName}}: func() proto.Message { return new(dota.{{$spec.TypeName}}) },
+	{{- end }}
+	},
+	entityFactory{
+	{{- range $id, $spec := .Entities }}
+		{{$spec.EnumName}}: func() proto.Message { return new(dota.{{$spec.TypeName}}) },
+	{{- end }}
+	},
 }
 `
 )
