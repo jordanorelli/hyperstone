@@ -19,9 +19,9 @@ type dataGram struct {
 
 func (g dataGram) String() string {
 	if len(g.body) > 30 {
-		return fmt.Sprintf("{dataGram cmd: %v tick: %v size: %d body: %q...}", g.cmd, g.tick, len(g.body), g.body[:27])
+		return fmt.Sprintf("{dataGram cmd: %v tick: %v size: %d body: %x...}", g.cmd, g.tick, len(g.body), g.body[:27])
 	}
-	return fmt.Sprintf("{dataGram cmd: %v tick: %v size: %d body: %q}", g.cmd, g.tick, len(g.body), g.body)
+	return fmt.Sprintf("{dataGram cmd: %v tick: %v size: %d body: %x}", g.cmd, g.tick, len(g.body), g.body)
 }
 
 func (g *dataGram) check(dump bool) error {
