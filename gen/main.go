@@ -115,6 +115,24 @@ func (e entityType) String() string {
 	}
 }
 
+type messageStatus int
+
+const (
+	m_Unknown messageStatus = iota
+	m_Skipped
+)
+
+func (m messageStatus) Error() string {
+	switch m {
+	case m_Unknown:
+		return "unknown message type"
+	case m_Skipped:
+		return "skipped message type"
+	default:
+		return "unknown message error"
+	}
+}
+
 type datagramFactory map[datagramType]func() proto.Message
 type entityFactory map[entityType]func() proto.Message
 
@@ -123,20 +141,20 @@ type messageFactory struct {
 	entities entityFactory
 }
 
-func (m *messageFactory) BuildDatagram(id datagramType) proto.Message {
+func (m *messageFactory) BuildDatagram(id datagramType) (proto.Message, error) {
 	fn, ok := m.datagrams[id]
 	if !ok {
-		return nil
+		return nil, m_Unknown
 	}
-	return fn()
+	return fn(), nil
 }
 
-func (m *messageFactory) BuildEntity(id entityType) proto.Message {
+func (m *messageFactory) BuildEntity(id entityType) (proto.Message, error) {
 	fn, ok := m.entities[id]
 	if !ok {
-		return nil
+		return nil, m_Unknown
 	}
-	return fn()
+	return fn(), nil
 }
 
 var messages = messageFactory{

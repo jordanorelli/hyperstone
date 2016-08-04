@@ -128,6 +128,7 @@ const (
 	EBaseUserMessages_UM_CloseCaptionPlaceholder           entityType   = 142
 	EBaseUserMessages_UM_CameraTransition                  entityType   = 143
 	EBaseUserMessages_UM_AudioParameter                    entityType   = 144
+	EBaseGameEvents_GE_VDebugGameSessionIDEvent            entityType   = 200
 	EBaseGameEvents_GE_PlaceDecalEvent                     entityType   = 201
 	EBaseGameEvents_GE_ClearWorldDecalsEvent               entityType   = 202
 	EBaseGameEvents_GE_ClearEntityDecalsEvent              entityType   = 203
@@ -431,6 +432,8 @@ func (e entityType) String() string {
 		return "EBaseUserMessages_UM_CameraTransition"
 	case EBaseUserMessages_UM_AudioParameter:
 		return "EBaseUserMessages_UM_AudioParameter"
+	case EBaseGameEvents_GE_VDebugGameSessionIDEvent:
+		return "EBaseGameEvents_GE_VDebugGameSessionIDEvent"
 	case EBaseGameEvents_GE_PlaceDecalEvent:
 		return "EBaseGameEvents_GE_PlaceDecalEvent"
 	case EBaseGameEvents_GE_ClearWorldDecalsEvent:
@@ -644,6 +647,24 @@ func (e entityType) String() string {
 	}
 }
 
+type messageStatus int
+
+const (
+	m_Unknown messageStatus = iota
+	m_Skipped
+)
+
+func (m messageStatus) Error() string {
+	switch m {
+	case m_Unknown:
+		return "unknown message type"
+	case m_Skipped:
+		return "skipped message type"
+	default:
+		return "unknown message error"
+	}
+}
+
 type datagramFactory map[datagramType]func() proto.Message
 type entityFactory map[entityType]func() proto.Message
 
@@ -652,20 +673,20 @@ type messageFactory struct {
 	entities  entityFactory
 }
 
-func (m *messageFactory) BuildDatagram(id datagramType) proto.Message {
+func (m *messageFactory) BuildDatagram(id datagramType) (proto.Message, error) {
 	fn, ok := m.datagrams[id]
 	if !ok {
-		return nil
+		return nil, m_Unknown
 	}
-	return fn()
+	return fn(), nil
 }
 
-func (m *messageFactory) BuildEntity(id entityType) proto.Message {
+func (m *messageFactory) BuildEntity(id entityType) (proto.Message, error) {
 	fn, ok := m.entities[id]
 	if !ok {
-		return nil
+		return nil, m_Unknown
 	}
-	return fn()
+	return fn(), nil
 }
 
 var messages = messageFactory{
@@ -766,6 +787,7 @@ var messages = messageFactory{
 		EBaseUserMessages_UM_CloseCaptionPlaceholder:           func() proto.Message { return new(dota.CUserMessageCloseCaptionPlaceholder) },
 		EBaseUserMessages_UM_CameraTransition:                  func() proto.Message { return new(dota.CUserMessageCameraTransition) },
 		EBaseUserMessages_UM_AudioParameter:                    func() proto.Message { return new(dota.CUserMessageAudioParameter) },
+		EBaseGameEvents_GE_VDebugGameSessionIDEvent:            func() proto.Message { return new(dota.CMsgVDebugGameSessionIDEvent) },
 		EBaseGameEvents_GE_PlaceDecalEvent:                     func() proto.Message { return new(dota.CMsgPlaceDecalEvent) },
 		EBaseGameEvents_GE_ClearWorldDecalsEvent:               func() proto.Message { return new(dota.CMsgClearWorldDecalsEvent) },
 		EBaseGameEvents_GE_ClearEntityDecalsEvent:              func() proto.Message { return new(dota.CMsgClearEntityDecalsEvent) },

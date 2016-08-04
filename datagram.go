@@ -22,12 +22,11 @@ func (g dataGram) String() string {
 }
 
 func (g *dataGram) Open(m *messageFactory) (proto.Message, error) {
-	msg := m.BuildDatagram(g.cmd)
-	if msg == nil {
-		return nil, fmt.Errorf("skipped")
-	}
-	err := proto.Unmarshal(g.body, msg)
+	msg, err := m.BuildDatagram(g.cmd)
 	if err != nil {
+		return nil, err
+	}
+	if err := proto.Unmarshal(g.body, msg); err != nil {
 		return nil, err
 	}
 	return msg, nil

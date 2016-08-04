@@ -88,13 +88,12 @@ func (p *parser) handleDemoPacket(packet *dota.CDemoPacket) error {
 		if p.dumpPackets {
 			fmt.Printf("\t%v\n", entity{t: t, size: uint32(s), body: b})
 		}
-		e := messages.BuildEntity(t)
-		if e == nil {
-			fmt.Printf("\tno known entity for type id %d size: %d\n", int(t), len(b))
+		e, err := messages.BuildEntity(t)
+		if err != nil {
+			fmt.Printf("\tskipping entity of size %d, type %s: %v\n", len(b), t, err)
 			continue
 		}
-		err := proto.Unmarshal(b, e)
-		if err != nil {
+		if err := proto.Unmarshal(b, e); err != nil {
 			fmt.Printf("entity unmarshal error: %v\n", err)
 		}
 	}
