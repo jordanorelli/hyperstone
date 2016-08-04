@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"reflect"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/snappy"
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
@@ -13,8 +15,8 @@ type parser struct {
 	// the source of replay bytes. Must NOT be compressed.
 	source *bufio.Reader
 
-	dumpMessages bool
-	dumpPackets  bool
+	dumpDatagrams bool
+	dumpPackets   bool
 }
 
 func newParser(r io.Reader) *parser {
@@ -38,26 +40,29 @@ func (p *parser) start() error {
 
 func (p *parser) run() error {
 	for {
-		msg, err := p.readMessage()
+		gram, err := p.readDatagram()
 		if err != nil {
-			return wrap(err, "read message error in run loop")
+			return wrap(err, "read datagram error in run loop")
 		}
-		if p.dumpMessages {
-			fmt.Println(msg)
+		if p.dumpDatagrams {
+			fmt.Println(gram)
 		}
-		switch msg.cmd {
+
+		if len(gram.body) == 0 {
+			continue
+		}
+
+		switch gram.cmd {
 		case dota.EDemoCommands_DEM_Packet:
-			if err := msg.check(p.dumpPackets); err != nil {
+			if err := gram.check(p.dumpPackets); err != nil {
 				fmt.Printf("error: %v\n", err)
 			}
 		default:
-			m := cmdFactory.BuildMessage(int(msg.cmd))
+			m := cmdFactory.BuildMessage(int(gram.cmd))
 			if m != nil {
-				err := proto.Unmarshal(msg.body, m)
+				err := proto.Unmarshal(gram.body, m)
 				if err != nil {
-					fmt.Printf("cmd unmarshal error: %v\n", err)
-				} else {
-					fmt.Println(m)
+					fmt.Printf("cmd unmarshal error unpacking data of length %d with cmd type %s into message type %v: %v\n", len(gram.body), gram.cmd, reflect.TypeOf(m), err)
 				}
 			}
 		}
@@ -133,31 +138,39 @@ func (p *parser) readCommand() (dota.EDemoCommands, bool, error) {
 	return dota.EDemoCommands(n), compressed, nil
 }
 
-func (p *parser) readMessage() (*dataGram, error) {
+func (p *parser) readDatagram() (*dataGram, error) {
 	cmd, compressed, err := p.readCommand()
 	if err != nil {
-		return nil, wrap(err, "readMessage couldn't get a command")
+		return nil, wrap(err, "readDatagram couldn't get a command")
 	}
 
 	tick, err := p.decodeVarint()
 	if err != nil {
-		return nil, wrap(err, "readMessage couldn't read the tick value")
+		return nil, wrap(err, "readDatagram couldn't read the tick value")
 	}
 
 	size, err := p.decodeVarint()
 	if err != nil {
-		return nil, wrap(err, "readMessage couldn't read the size value")
+		return nil, wrap(err, "readDatagram couldn't read the size value")
 	}
 
 	if size > 0 {
 		buf := make([]byte, int(size))
 		if _, err := io.ReadFull(p.source, buf); err != nil {
-			return nil, wrap(err, "readMessage couldn't read message body")
+			return nil, wrap(err, "readDatagram couldn't read datagram body")
+		}
+
+		if compressed {
+			var err error
+			buf, err = snappy.Decode(nil, buf)
+			if err != nil {
+				return nil, wrap(err, "readDatagram couldn't snappy decode body")
+			}
 		}
 		// TODO: pool these!
-		return &dataGram{cmd, int64(tick), compressed, buf}, nil
+		return &dataGram{cmd, int64(tick), buf}, nil
 	}
 
 	// TODO: pool these!
-	return &dataGram{cmd, int64(tick), compressed, nil}, nil
+	return &dataGram{cmd, int64(tick), nil}, nil
 }
