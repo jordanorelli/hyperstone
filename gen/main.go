@@ -29,6 +29,7 @@ var (
 		"EBaseEntityMessages": true,
 		"EBaseGameEvents":     true,
 		"EDotaUserMessages":   true,
+		"ETEProtobufIds":      true,
 	}
 	prefixes = map[string]string{
 		"EDemoCommands_DEM_":         "CDemo",

@@ -148,6 +148,7 @@ var entFactory = protoFactory{
 	210: func() proto.Message { return new(dota.CMsgSosSetSoundEventParams) },
 	211: func() proto.Message { return new(dota.CMsgSosSetLibraryStackFields) },
 	212: func() proto.Message { return new(dota.CMsgSosStopSoundEventHash) },
+	400: func() proto.Message { return new(dota.CMsgTEEffectDispatch) },
 	465: func() proto.Message { return new(dota.CDOTAUserMsg_AIDebugLine) },
 	466: func() proto.Message { return new(dota.CDOTAUserMsg_ChatEvent) },
 	467: func() proto.Message { return new(dota.CDOTAUserMsg_CombatHeroPositions) },
