@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"reflect"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
+	"github.com/jordanorelli/hyperstone/bit"
+	"github.com/jordanorelli/hyperstone/dota"
 )
 
 type parser struct {
@@ -43,27 +44,58 @@ func (p *parser) run() error {
 		if err != nil {
 			return wrap(err, "read datagram error in run loop")
 		}
-		if p.dumpDatagrams {
-			fmt.Println(gram)
-		}
+		p.handleDataGram(gram)
+	}
+}
 
-		if len(gram.body) == 0 {
+func (p *parser) handleDataGram(d *dataGram) error {
+	if p.dumpDatagrams {
+		fmt.Println(d)
+	}
+
+	if len(d.body) == 0 {
+		return nil
+	}
+
+	msg, err := d.Open(&messages)
+	if err != nil {
+		fmt.Printf("datagram open error: %v\n", err)
+		return nil
+	}
+
+	switch v := msg.(type) {
+	case *dota.CDemoPacket:
+		p.handleDemoPacket(v)
+	}
+	return nil
+}
+
+func (p *parser) handleDemoPacket(packet *dota.CDemoPacket) error {
+	br := bit.NewBytesReader(packet.GetData())
+	for {
+		t := entityType(br.ReadUBitVar())
+		s := br.ReadVarInt()
+		b := make([]byte, s)
+		br.Read(b)
+		switch err := br.Err(); err {
+		case nil:
+			break
+		case io.EOF:
+			return nil
+		default:
+			return err
+		}
+		if p.dumpPackets {
+			fmt.Printf("\t%v\n", entity{t: t, size: uint32(s), body: b})
+		}
+		e := messages.BuildEntity(t)
+		if e == nil {
+			fmt.Printf("\tno known entity for type id %d size: %d\n", int(t), len(b))
 			continue
 		}
-
-		switch gram.cmd {
-		case EDemoCommands_DEM_Packet:
-			if err := gram.check(p.dumpPackets); err != nil {
-				fmt.Printf("error: %v\n", err)
-			}
-		default:
-			m := messages.BuildDatagram(gram.cmd)
-			if m != nil {
-				err := proto.Unmarshal(gram.body, m)
-				if err != nil {
-					fmt.Printf("cmd unmarshal error unpacking data of length %d with cmd type %s into message type %v: %v\n", len(gram.body), gram.cmd, reflect.TypeOf(m), err)
-				}
-			}
+		err := proto.Unmarshal(b, e)
+		if err != nil {
+			fmt.Printf("entity unmarshal error: %v\n", err)
 		}
 	}
 }

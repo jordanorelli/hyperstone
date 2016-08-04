@@ -2,11 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/jordanorelli/hyperstone/bit"
-	"github.com/jordanorelli/hyperstone/dota"
 )
 
 // datagram represents the top-level envelope in the dota replay format. All
@@ -24,42 +21,14 @@ func (g dataGram) String() string {
 	return fmt.Sprintf("{dataGram cmd: %v tick: %v size: %d body: %x}", g.cmd, g.tick, len(g.body), g.body)
 }
 
-func (g *dataGram) check(dump bool) error {
-	if g.cmd != EDemoCommands_DEM_Packet {
-		return fmt.Errorf("wrong command type in openPacket: %v", g.cmd)
+func (g *dataGram) Open(m *messageFactory) (proto.Message, error) {
+	msg := m.BuildDatagram(g.cmd)
+	if msg == nil {
+		return nil, fmt.Errorf("skipped")
 	}
-
-	packet := new(dota.CDemoPacket)
-	if err := proto.Unmarshal(g.body, packet); err != nil {
-		return wrap(err, "onPacket unable to unmarshal message body")
+	err := proto.Unmarshal(g.body, msg)
+	if err != nil {
+		return nil, err
 	}
-
-	br := bit.NewBytesReader(packet.GetData())
-	for {
-		t := entityType(br.ReadUBitVar())
-		s := br.ReadVarInt()
-		b := make([]byte, s)
-		br.Read(b)
-		switch err := br.Err(); err {
-		case nil:
-			break
-		case io.EOF:
-			return nil
-		default:
-			return err
-		}
-		if dump {
-			fmt.Printf("\t%v\n", entity{t: t, size: uint32(s), body: b})
-		}
-		e := messages.BuildEntity(t)
-		if e == nil {
-			fmt.Printf("\tno known entity for type id %d size: %d\n", int(t), len(b))
-			continue
-		}
-		err := proto.Unmarshal(b, e)
-		if err != nil {
-			fmt.Printf("entity unmarshal error: %v\n", err)
-		}
-	}
-	return nil
+	return msg, nil
 }
