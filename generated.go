@@ -25,218 +25,218 @@ package main
 ////////////////////////////////////////////////////////////////////////////////
 
 import (
+	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
-type datagramType int32
+type packetType int32
 type entityType int32
 
 const (
-	EDemoCommands_DEM_Error                                datagramType = -1
-	EDemoCommands_DEM_Stop                                 datagramType = 0
-	EDemoCommands_DEM_FileHeader                           datagramType = 1
-	EDemoCommands_DEM_FileInfo                             datagramType = 2
-	EDemoCommands_DEM_SyncTick                             datagramType = 3
-	EDemoCommands_DEM_SendTables                           datagramType = 4
-	EDemoCommands_DEM_ClassInfo                            datagramType = 5
-	EDemoCommands_DEM_StringTables                         datagramType = 6
-	EDemoCommands_DEM_Packet                               datagramType = 7
-	EDemoCommands_DEM_SignonPacket                         datagramType = 8
-	EDemoCommands_DEM_ConsoleCmd                           datagramType = 9
-	EDemoCommands_DEM_CustomData                           datagramType = 10
-	EDemoCommands_DEM_CustomDataCallbacks                  datagramType = 11
-	EDemoCommands_DEM_UserCmd                              datagramType = 12
-	EDemoCommands_DEM_FullPacket                           datagramType = 13
-	EDemoCommands_DEM_SaveGame                             datagramType = 14
-	EDemoCommands_DEM_SpawnGroups                          datagramType = 15
-	NET_Messages_net_NOP                                   entityType   = 0
-	NET_Messages_net_Disconnect                            entityType   = 1
-	NET_Messages_net_SplitScreenUser                       entityType   = 3
-	NET_Messages_net_Tick                                  entityType   = 4
-	NET_Messages_net_StringCmd                             entityType   = 5
-	NET_Messages_net_SetConVar                             entityType   = 6
-	NET_Messages_net_SignonState                           entityType   = 7
-	NET_Messages_net_SpawnGroup_Load                       entityType   = 8
-	NET_Messages_net_SpawnGroup_ManifestUpdate             entityType   = 9
-	NET_Messages_net_SpawnGroup_SetCreationTick            entityType   = 11
-	NET_Messages_net_SpawnGroup_Unload                     entityType   = 12
-	NET_Messages_net_SpawnGroup_LoadCompleted              entityType   = 13
-	SVC_Messages_svc_ServerInfo                            entityType   = 40
-	SVC_Messages_svc_FlattenedSerializer                   entityType   = 41
-	SVC_Messages_svc_ClassInfo                             entityType   = 42
-	SVC_Messages_svc_SetPause                              entityType   = 43
-	SVC_Messages_svc_CreateStringTable                     entityType   = 44
-	SVC_Messages_svc_UpdateStringTable                     entityType   = 45
-	SVC_Messages_svc_VoiceInit                             entityType   = 46
-	SVC_Messages_svc_VoiceData                             entityType   = 47
-	SVC_Messages_svc_Print                                 entityType   = 48
-	SVC_Messages_svc_Sounds                                entityType   = 49
-	SVC_Messages_svc_SetView                               entityType   = 50
-	SVC_Messages_svc_ClearAllStringTables                  entityType   = 51
-	SVC_Messages_svc_CmdKeyValues                          entityType   = 52
-	SVC_Messages_svc_BSPDecal                              entityType   = 53
-	SVC_Messages_svc_SplitScreen                           entityType   = 54
-	SVC_Messages_svc_PacketEntities                        entityType   = 55
-	SVC_Messages_svc_Prefetch                              entityType   = 56
-	SVC_Messages_svc_Menu                                  entityType   = 57
-	SVC_Messages_svc_GetCvarValue                          entityType   = 58
-	SVC_Messages_svc_StopSound                             entityType   = 59
-	SVC_Messages_svc_PeerList                              entityType   = 60
-	SVC_Messages_svc_PacketReliable                        entityType   = 61
-	SVC_Messages_svc_HLTVStatus                            entityType   = 62
-	SVC_Messages_svc_ServerSteamID                         entityType   = 63
-	SVC_Messages_svc_FullFrameSplit                        entityType   = 70
-	EBaseUserMessages_UM_AchievementEvent                  entityType   = 101
-	EBaseUserMessages_UM_CloseCaption                      entityType   = 102
-	EBaseUserMessages_UM_CloseCaptionDirect                entityType   = 103
-	EBaseUserMessages_UM_CurrentTimescale                  entityType   = 104
-	EBaseUserMessages_UM_DesiredTimescale                  entityType   = 105
-	EBaseUserMessages_UM_Fade                              entityType   = 106
-	EBaseUserMessages_UM_GameTitle                         entityType   = 107
-	EBaseUserMessages_UM_HintText                          entityType   = 109
-	EBaseUserMessages_UM_HudMsg                            entityType   = 110
-	EBaseUserMessages_UM_HudText                           entityType   = 111
-	EBaseUserMessages_UM_KeyHintText                       entityType   = 112
-	EBaseUserMessages_UM_ColoredText                       entityType   = 113
-	EBaseUserMessages_UM_RequestState                      entityType   = 114
-	EBaseUserMessages_UM_ResetHUD                          entityType   = 115
-	EBaseUserMessages_UM_Rumble                            entityType   = 116
-	EBaseUserMessages_UM_SayText                           entityType   = 117
-	EBaseUserMessages_UM_SayText2                          entityType   = 118
-	EBaseUserMessages_UM_SayTextChannel                    entityType   = 119
-	EBaseUserMessages_UM_Shake                             entityType   = 120
-	EBaseUserMessages_UM_ShakeDir                          entityType   = 121
-	EBaseUserMessages_UM_TextMsg                           entityType   = 124
-	EBaseUserMessages_UM_ScreenTilt                        entityType   = 125
-	EBaseUserMessages_UM_Train                             entityType   = 126
-	EBaseUserMessages_UM_VGUIMenu                          entityType   = 127
-	EBaseUserMessages_UM_VoiceMask                         entityType   = 128
-	EBaseUserMessages_UM_VoiceSubtitle                     entityType   = 129
-	EBaseUserMessages_UM_SendAudio                         entityType   = 130
-	EBaseUserMessages_UM_ItemPickup                        entityType   = 131
-	EBaseUserMessages_UM_AmmoDenied                        entityType   = 132
-	EBaseUserMessages_UM_CrosshairAngle                    entityType   = 133
-	EBaseUserMessages_UM_ShowMenu                          entityType   = 134
-	EBaseUserMessages_UM_CreditsMsg                        entityType   = 135
-	EBaseEntityMessages_EM_PlayJingle                      entityType   = 136
-	EBaseEntityMessages_EM_ScreenOverlay                   entityType   = 137
-	EBaseEntityMessages_EM_RemoveAllDecals                 entityType   = 138
-	EBaseEntityMessages_EM_PropagateForce                  entityType   = 139
-	EBaseEntityMessages_EM_DoSpark                         entityType   = 140
-	EBaseEntityMessages_EM_FixAngle                        entityType   = 141
-	EBaseUserMessages_UM_CloseCaptionPlaceholder           entityType   = 142
-	EBaseUserMessages_UM_CameraTransition                  entityType   = 143
-	EBaseUserMessages_UM_AudioParameter                    entityType   = 144
-	EBaseGameEvents_GE_VDebugGameSessionIDEvent            entityType   = 200
-	EBaseGameEvents_GE_PlaceDecalEvent                     entityType   = 201
-	EBaseGameEvents_GE_ClearWorldDecalsEvent               entityType   = 202
-	EBaseGameEvents_GE_ClearEntityDecalsEvent              entityType   = 203
-	EBaseGameEvents_GE_ClearDecalsForSkeletonInstanceEvent entityType   = 204
-	EBaseGameEvents_GE_Source1LegacyGameEventList          entityType   = 205
-	EBaseGameEvents_GE_Source1LegacyListenEvents           entityType   = 206
-	EBaseGameEvents_GE_Source1LegacyGameEvent              entityType   = 207
-	EBaseGameEvents_GE_SosStartSoundEvent                  entityType   = 208
-	EBaseGameEvents_GE_SosStopSoundEvent                   entityType   = 209
-	EBaseGameEvents_GE_SosSetSoundEventParams              entityType   = 210
-	EBaseGameEvents_GE_SosSetLibraryStackFields            entityType   = 211
-	EBaseGameEvents_GE_SosStopSoundEventHash               entityType   = 212
-	ETEProtobufIds_TE_EffectDispatchId                     entityType   = 400
-	EDotaUserMessages_DOTA_UM_AIDebugLine                  entityType   = 465
-	EDotaUserMessages_DOTA_UM_ChatEvent                    entityType   = 466
-	EDotaUserMessages_DOTA_UM_CombatHeroPositions          entityType   = 467
-	EDotaUserMessages_DOTA_UM_CombatLogShowDeath           entityType   = 470
-	EDotaUserMessages_DOTA_UM_CreateLinearProjectile       entityType   = 471
-	EDotaUserMessages_DOTA_UM_DestroyLinearProjectile      entityType   = 472
-	EDotaUserMessages_DOTA_UM_DodgeTrackingProjectiles     entityType   = 473
-	EDotaUserMessages_DOTA_UM_GlobalLightColor             entityType   = 474
-	EDotaUserMessages_DOTA_UM_GlobalLightDirection         entityType   = 475
-	EDotaUserMessages_DOTA_UM_InvalidCommand               entityType   = 476
-	EDotaUserMessages_DOTA_UM_LocationPing                 entityType   = 477
-	EDotaUserMessages_DOTA_UM_MapLine                      entityType   = 478
-	EDotaUserMessages_DOTA_UM_MiniKillCamInfo              entityType   = 479
-	EDotaUserMessages_DOTA_UM_MinimapDebugPoint            entityType   = 480
-	EDotaUserMessages_DOTA_UM_MinimapEvent                 entityType   = 481
-	EDotaUserMessages_DOTA_UM_NevermoreRequiem             entityType   = 482
-	EDotaUserMessages_DOTA_UM_OverheadEvent                entityType   = 483
-	EDotaUserMessages_DOTA_UM_SetNextAutobuyItem           entityType   = 484
-	EDotaUserMessages_DOTA_UM_SharedCooldown               entityType   = 485
-	EDotaUserMessages_DOTA_UM_SpectatorPlayerClick         entityType   = 486
-	EDotaUserMessages_DOTA_UM_TutorialTipInfo              entityType   = 487
-	EDotaUserMessages_DOTA_UM_UnitEvent                    entityType   = 488
-	EDotaUserMessages_DOTA_UM_ParticleManager              entityType   = 489
-	EDotaUserMessages_DOTA_UM_BotChat                      entityType   = 490
-	EDotaUserMessages_DOTA_UM_HudError                     entityType   = 491
-	EDotaUserMessages_DOTA_UM_ItemPurchased                entityType   = 492
-	EDotaUserMessages_DOTA_UM_Ping                         entityType   = 493
-	EDotaUserMessages_DOTA_UM_ItemFound                    entityType   = 494
-	EDotaUserMessages_DOTA_UM_SwapVerify                   entityType   = 496
-	EDotaUserMessages_DOTA_UM_WorldLine                    entityType   = 497
-	EDotaUserMessages_DOTA_UM_TournamentDrop               entityType   = 498
-	EDotaUserMessages_DOTA_UM_ItemAlert                    entityType   = 499
-	EDotaUserMessages_DOTA_UM_HalloweenDrops               entityType   = 500
-	EDotaUserMessages_DOTA_UM_ChatWheel                    entityType   = 501
-	EDotaUserMessages_DOTA_UM_ReceivedXmasGift             entityType   = 502
-	EDotaUserMessages_DOTA_UM_UpdateSharedContent          entityType   = 503
-	EDotaUserMessages_DOTA_UM_TutorialRequestExp           entityType   = 504
-	EDotaUserMessages_DOTA_UM_TutorialPingMinimap          entityType   = 505
-	EDotaUserMessages_DOTA_UM_GamerulesStateChanged        entityType   = 506
-	EDotaUserMessages_DOTA_UM_ShowSurvey                   entityType   = 507
-	EDotaUserMessages_DOTA_UM_TutorialFade                 entityType   = 508
-	EDotaUserMessages_DOTA_UM_AddQuestLogEntry             entityType   = 509
-	EDotaUserMessages_DOTA_UM_SendStatPopup                entityType   = 510
-	EDotaUserMessages_DOTA_UM_TutorialFinish               entityType   = 511
-	EDotaUserMessages_DOTA_UM_SendRoshanPopup              entityType   = 512
-	EDotaUserMessages_DOTA_UM_SendGenericToolTip           entityType   = 513
-	EDotaUserMessages_DOTA_UM_SendFinalGold                entityType   = 514
-	EDotaUserMessages_DOTA_UM_CustomMsg                    entityType   = 515
-	EDotaUserMessages_DOTA_UM_CoachHUDPing                 entityType   = 516
-	EDotaUserMessages_DOTA_UM_ClientLoadGridNav            entityType   = 517
-	EDotaUserMessages_DOTA_UM_TE_Projectile                entityType   = 518
-	EDotaUserMessages_DOTA_UM_TE_ProjectileLoc             entityType   = 519
-	EDotaUserMessages_DOTA_UM_TE_DotaBloodImpact           entityType   = 520
-	EDotaUserMessages_DOTA_UM_TE_UnitAnimation             entityType   = 521
-	EDotaUserMessages_DOTA_UM_TE_UnitAnimationEnd          entityType   = 522
-	EDotaUserMessages_DOTA_UM_AbilityPing                  entityType   = 523
-	EDotaUserMessages_DOTA_UM_ShowGenericPopup             entityType   = 524
-	EDotaUserMessages_DOTA_UM_VoteStart                    entityType   = 525
-	EDotaUserMessages_DOTA_UM_VoteUpdate                   entityType   = 526
-	EDotaUserMessages_DOTA_UM_VoteEnd                      entityType   = 527
-	EDotaUserMessages_DOTA_UM_BoosterState                 entityType   = 528
-	EDotaUserMessages_DOTA_UM_WillPurchaseAlert            entityType   = 529
-	EDotaUserMessages_DOTA_UM_TutorialMinimapPosition      entityType   = 530
-	EDotaUserMessages_DOTA_UM_PlayerMMR                    entityType   = 531
-	EDotaUserMessages_DOTA_UM_AbilitySteal                 entityType   = 532
-	EDotaUserMessages_DOTA_UM_CourierKilledAlert           entityType   = 533
-	EDotaUserMessages_DOTA_UM_EnemyItemAlert               entityType   = 534
-	EDotaUserMessages_DOTA_UM_StatsMatchDetails            entityType   = 535
-	EDotaUserMessages_DOTA_UM_MiniTaunt                    entityType   = 536
-	EDotaUserMessages_DOTA_UM_BuyBackStateAlert            entityType   = 537
-	EDotaUserMessages_DOTA_UM_SpeechBubble                 entityType   = 538
-	EDotaUserMessages_DOTA_UM_CustomHeaderMessage          entityType   = 539
-	EDotaUserMessages_DOTA_UM_QuickBuyAlert                entityType   = 540
-	EDotaUserMessages_DOTA_UM_StatsHeroDetails             entityType   = 541
-	EDotaUserMessages_DOTA_UM_PredictionResult             entityType   = 542
-	EDotaUserMessages_DOTA_UM_ModifierAlert                entityType   = 543
-	EDotaUserMessages_DOTA_UM_HPManaAlert                  entityType   = 544
-	EDotaUserMessages_DOTA_UM_GlyphAlert                   entityType   = 545
-	EDotaUserMessages_DOTA_UM_BeastChat                    entityType   = 546
-	EDotaUserMessages_DOTA_UM_SpectatorPlayerUnitOrders    entityType   = 547
-	EDotaUserMessages_DOTA_UM_CustomHudElement_Create      entityType   = 548
-	EDotaUserMessages_DOTA_UM_CustomHudElement_Modify      entityType   = 549
-	EDotaUserMessages_DOTA_UM_CustomHudElement_Destroy     entityType   = 550
-	EDotaUserMessages_DOTA_UM_CompendiumState              entityType   = 551
-	EDotaUserMessages_DOTA_UM_ProjectionAbility            entityType   = 552
-	EDotaUserMessages_DOTA_UM_ProjectionEvent              entityType   = 553
-	EDotaUserMessages_DOTA_UM_CombatLogDataHLTV            entityType   = 554
-	EDotaUserMessages_DOTA_UM_XPAlert                      entityType   = 555
-	EDotaUserMessages_DOTA_UM_UpdateQuestProgress          entityType   = 556
-	EDotaUserMessages_DOTA_UM_MatchMetadata                entityType   = 557
-	EDotaUserMessages_DOTA_UM_QuestStatus                  entityType   = 559
+	EDemoCommands_DEM_Error                                packetType = -1
+	EDemoCommands_DEM_Stop                                 packetType = 0
+	EDemoCommands_DEM_FileHeader                           packetType = 1
+	EDemoCommands_DEM_FileInfo                             packetType = 2
+	EDemoCommands_DEM_SyncTick                             packetType = 3
+	EDemoCommands_DEM_SendTables                           packetType = 4
+	EDemoCommands_DEM_ClassInfo                            packetType = 5
+	EDemoCommands_DEM_StringTables                         packetType = 6
+	EDemoCommands_DEM_Packet                               packetType = 7
+	EDemoCommands_DEM_SignonPacket                         packetType = 8
+	EDemoCommands_DEM_ConsoleCmd                           packetType = 9
+	EDemoCommands_DEM_CustomData                           packetType = 10
+	EDemoCommands_DEM_CustomDataCallbacks                  packetType = 11
+	EDemoCommands_DEM_UserCmd                              packetType = 12
+	EDemoCommands_DEM_FullPacket                           packetType = 13
+	EDemoCommands_DEM_SaveGame                             packetType = 14
+	EDemoCommands_DEM_SpawnGroups                          packetType = 15
+	NET_Messages_net_NOP                                   entityType = 0
+	NET_Messages_net_Disconnect                            entityType = 1
+	NET_Messages_net_SplitScreenUser                       entityType = 3
+	NET_Messages_net_Tick                                  entityType = 4
+	NET_Messages_net_StringCmd                             entityType = 5
+	NET_Messages_net_SetConVar                             entityType = 6
+	NET_Messages_net_SignonState                           entityType = 7
+	NET_Messages_net_SpawnGroup_Load                       entityType = 8
+	NET_Messages_net_SpawnGroup_ManifestUpdate             entityType = 9
+	NET_Messages_net_SpawnGroup_SetCreationTick            entityType = 11
+	NET_Messages_net_SpawnGroup_Unload                     entityType = 12
+	NET_Messages_net_SpawnGroup_LoadCompleted              entityType = 13
+	SVC_Messages_svc_ServerInfo                            entityType = 40
+	SVC_Messages_svc_FlattenedSerializer                   entityType = 41
+	SVC_Messages_svc_ClassInfo                             entityType = 42
+	SVC_Messages_svc_SetPause                              entityType = 43
+	SVC_Messages_svc_CreateStringTable                     entityType = 44
+	SVC_Messages_svc_UpdateStringTable                     entityType = 45
+	SVC_Messages_svc_VoiceInit                             entityType = 46
+	SVC_Messages_svc_VoiceData                             entityType = 47
+	SVC_Messages_svc_Print                                 entityType = 48
+	SVC_Messages_svc_Sounds                                entityType = 49
+	SVC_Messages_svc_SetView                               entityType = 50
+	SVC_Messages_svc_ClearAllStringTables                  entityType = 51
+	SVC_Messages_svc_CmdKeyValues                          entityType = 52
+	SVC_Messages_svc_BSPDecal                              entityType = 53
+	SVC_Messages_svc_SplitScreen                           entityType = 54
+	SVC_Messages_svc_PacketEntities                        entityType = 55
+	SVC_Messages_svc_Prefetch                              entityType = 56
+	SVC_Messages_svc_Menu                                  entityType = 57
+	SVC_Messages_svc_GetCvarValue                          entityType = 58
+	SVC_Messages_svc_StopSound                             entityType = 59
+	SVC_Messages_svc_PeerList                              entityType = 60
+	SVC_Messages_svc_PacketReliable                        entityType = 61
+	SVC_Messages_svc_HLTVStatus                            entityType = 62
+	SVC_Messages_svc_ServerSteamID                         entityType = 63
+	SVC_Messages_svc_FullFrameSplit                        entityType = 70
+	EBaseUserMessages_UM_AchievementEvent                  entityType = 101
+	EBaseUserMessages_UM_CloseCaption                      entityType = 102
+	EBaseUserMessages_UM_CloseCaptionDirect                entityType = 103
+	EBaseUserMessages_UM_CurrentTimescale                  entityType = 104
+	EBaseUserMessages_UM_DesiredTimescale                  entityType = 105
+	EBaseUserMessages_UM_Fade                              entityType = 106
+	EBaseUserMessages_UM_GameTitle                         entityType = 107
+	EBaseUserMessages_UM_HintText                          entityType = 109
+	EBaseUserMessages_UM_HudMsg                            entityType = 110
+	EBaseUserMessages_UM_HudText                           entityType = 111
+	EBaseUserMessages_UM_KeyHintText                       entityType = 112
+	EBaseUserMessages_UM_ColoredText                       entityType = 113
+	EBaseUserMessages_UM_RequestState                      entityType = 114
+	EBaseUserMessages_UM_ResetHUD                          entityType = 115
+	EBaseUserMessages_UM_Rumble                            entityType = 116
+	EBaseUserMessages_UM_SayText                           entityType = 117
+	EBaseUserMessages_UM_SayText2                          entityType = 118
+	EBaseUserMessages_UM_SayTextChannel                    entityType = 119
+	EBaseUserMessages_UM_Shake                             entityType = 120
+	EBaseUserMessages_UM_ShakeDir                          entityType = 121
+	EBaseUserMessages_UM_TextMsg                           entityType = 124
+	EBaseUserMessages_UM_ScreenTilt                        entityType = 125
+	EBaseUserMessages_UM_Train                             entityType = 126
+	EBaseUserMessages_UM_VGUIMenu                          entityType = 127
+	EBaseUserMessages_UM_VoiceMask                         entityType = 128
+	EBaseUserMessages_UM_VoiceSubtitle                     entityType = 129
+	EBaseUserMessages_UM_SendAudio                         entityType = 130
+	EBaseUserMessages_UM_ItemPickup                        entityType = 131
+	EBaseUserMessages_UM_AmmoDenied                        entityType = 132
+	EBaseUserMessages_UM_CrosshairAngle                    entityType = 133
+	EBaseUserMessages_UM_ShowMenu                          entityType = 134
+	EBaseUserMessages_UM_CreditsMsg                        entityType = 135
+	EBaseEntityMessages_EM_PlayJingle                      entityType = 136
+	EBaseEntityMessages_EM_ScreenOverlay                   entityType = 137
+	EBaseEntityMessages_EM_RemoveAllDecals                 entityType = 138
+	EBaseEntityMessages_EM_PropagateForce                  entityType = 139
+	EBaseEntityMessages_EM_DoSpark                         entityType = 140
+	EBaseEntityMessages_EM_FixAngle                        entityType = 141
+	EBaseUserMessages_UM_CloseCaptionPlaceholder           entityType = 142
+	EBaseUserMessages_UM_CameraTransition                  entityType = 143
+	EBaseUserMessages_UM_AudioParameter                    entityType = 144
+	EBaseGameEvents_GE_PlaceDecalEvent                     entityType = 201
+	EBaseGameEvents_GE_ClearWorldDecalsEvent               entityType = 202
+	EBaseGameEvents_GE_ClearEntityDecalsEvent              entityType = 203
+	EBaseGameEvents_GE_ClearDecalsForSkeletonInstanceEvent entityType = 204
+	EBaseGameEvents_GE_Source1LegacyGameEventList          entityType = 205
+	EBaseGameEvents_GE_Source1LegacyListenEvents           entityType = 206
+	EBaseGameEvents_GE_Source1LegacyGameEvent              entityType = 207
+	EBaseGameEvents_GE_SosStartSoundEvent                  entityType = 208
+	EBaseGameEvents_GE_SosStopSoundEvent                   entityType = 209
+	EBaseGameEvents_GE_SosSetSoundEventParams              entityType = 210
+	EBaseGameEvents_GE_SosSetLibraryStackFields            entityType = 211
+	EBaseGameEvents_GE_SosStopSoundEventHash               entityType = 212
+	ETEProtobufIds_TE_EffectDispatchId                     entityType = 400
+	EDotaUserMessages_DOTA_UM_AIDebugLine                  entityType = 465
+	EDotaUserMessages_DOTA_UM_ChatEvent                    entityType = 466
+	EDotaUserMessages_DOTA_UM_CombatHeroPositions          entityType = 467
+	EDotaUserMessages_DOTA_UM_CombatLogShowDeath           entityType = 470
+	EDotaUserMessages_DOTA_UM_CreateLinearProjectile       entityType = 471
+	EDotaUserMessages_DOTA_UM_DestroyLinearProjectile      entityType = 472
+	EDotaUserMessages_DOTA_UM_DodgeTrackingProjectiles     entityType = 473
+	EDotaUserMessages_DOTA_UM_GlobalLightColor             entityType = 474
+	EDotaUserMessages_DOTA_UM_GlobalLightDirection         entityType = 475
+	EDotaUserMessages_DOTA_UM_InvalidCommand               entityType = 476
+	EDotaUserMessages_DOTA_UM_LocationPing                 entityType = 477
+	EDotaUserMessages_DOTA_UM_MapLine                      entityType = 478
+	EDotaUserMessages_DOTA_UM_MiniKillCamInfo              entityType = 479
+	EDotaUserMessages_DOTA_UM_MinimapDebugPoint            entityType = 480
+	EDotaUserMessages_DOTA_UM_MinimapEvent                 entityType = 481
+	EDotaUserMessages_DOTA_UM_NevermoreRequiem             entityType = 482
+	EDotaUserMessages_DOTA_UM_OverheadEvent                entityType = 483
+	EDotaUserMessages_DOTA_UM_SetNextAutobuyItem           entityType = 484
+	EDotaUserMessages_DOTA_UM_SharedCooldown               entityType = 485
+	EDotaUserMessages_DOTA_UM_SpectatorPlayerClick         entityType = 486
+	EDotaUserMessages_DOTA_UM_TutorialTipInfo              entityType = 487
+	EDotaUserMessages_DOTA_UM_UnitEvent                    entityType = 488
+	EDotaUserMessages_DOTA_UM_ParticleManager              entityType = 489
+	EDotaUserMessages_DOTA_UM_BotChat                      entityType = 490
+	EDotaUserMessages_DOTA_UM_HudError                     entityType = 491
+	EDotaUserMessages_DOTA_UM_ItemPurchased                entityType = 492
+	EDotaUserMessages_DOTA_UM_Ping                         entityType = 493
+	EDotaUserMessages_DOTA_UM_ItemFound                    entityType = 494
+	EDotaUserMessages_DOTA_UM_SwapVerify                   entityType = 496
+	EDotaUserMessages_DOTA_UM_WorldLine                    entityType = 497
+	EDotaUserMessages_DOTA_UM_TournamentDrop               entityType = 498
+	EDotaUserMessages_DOTA_UM_ItemAlert                    entityType = 499
+	EDotaUserMessages_DOTA_UM_HalloweenDrops               entityType = 500
+	EDotaUserMessages_DOTA_UM_ChatWheel                    entityType = 501
+	EDotaUserMessages_DOTA_UM_ReceivedXmasGift             entityType = 502
+	EDotaUserMessages_DOTA_UM_UpdateSharedContent          entityType = 503
+	EDotaUserMessages_DOTA_UM_TutorialRequestExp           entityType = 504
+	EDotaUserMessages_DOTA_UM_TutorialPingMinimap          entityType = 505
+	EDotaUserMessages_DOTA_UM_GamerulesStateChanged        entityType = 506
+	EDotaUserMessages_DOTA_UM_ShowSurvey                   entityType = 507
+	EDotaUserMessages_DOTA_UM_TutorialFade                 entityType = 508
+	EDotaUserMessages_DOTA_UM_AddQuestLogEntry             entityType = 509
+	EDotaUserMessages_DOTA_UM_SendStatPopup                entityType = 510
+	EDotaUserMessages_DOTA_UM_TutorialFinish               entityType = 511
+	EDotaUserMessages_DOTA_UM_SendRoshanPopup              entityType = 512
+	EDotaUserMessages_DOTA_UM_SendGenericToolTip           entityType = 513
+	EDotaUserMessages_DOTA_UM_SendFinalGold                entityType = 514
+	EDotaUserMessages_DOTA_UM_CustomMsg                    entityType = 515
+	EDotaUserMessages_DOTA_UM_CoachHUDPing                 entityType = 516
+	EDotaUserMessages_DOTA_UM_ClientLoadGridNav            entityType = 517
+	EDotaUserMessages_DOTA_UM_TE_Projectile                entityType = 518
+	EDotaUserMessages_DOTA_UM_TE_ProjectileLoc             entityType = 519
+	EDotaUserMessages_DOTA_UM_TE_DotaBloodImpact           entityType = 520
+	EDotaUserMessages_DOTA_UM_TE_UnitAnimation             entityType = 521
+	EDotaUserMessages_DOTA_UM_TE_UnitAnimationEnd          entityType = 522
+	EDotaUserMessages_DOTA_UM_AbilityPing                  entityType = 523
+	EDotaUserMessages_DOTA_UM_ShowGenericPopup             entityType = 524
+	EDotaUserMessages_DOTA_UM_VoteStart                    entityType = 525
+	EDotaUserMessages_DOTA_UM_VoteUpdate                   entityType = 526
+	EDotaUserMessages_DOTA_UM_VoteEnd                      entityType = 527
+	EDotaUserMessages_DOTA_UM_BoosterState                 entityType = 528
+	EDotaUserMessages_DOTA_UM_WillPurchaseAlert            entityType = 529
+	EDotaUserMessages_DOTA_UM_TutorialMinimapPosition      entityType = 530
+	EDotaUserMessages_DOTA_UM_PlayerMMR                    entityType = 531
+	EDotaUserMessages_DOTA_UM_AbilitySteal                 entityType = 532
+	EDotaUserMessages_DOTA_UM_CourierKilledAlert           entityType = 533
+	EDotaUserMessages_DOTA_UM_EnemyItemAlert               entityType = 534
+	EDotaUserMessages_DOTA_UM_StatsMatchDetails            entityType = 535
+	EDotaUserMessages_DOTA_UM_MiniTaunt                    entityType = 536
+	EDotaUserMessages_DOTA_UM_BuyBackStateAlert            entityType = 537
+	EDotaUserMessages_DOTA_UM_SpeechBubble                 entityType = 538
+	EDotaUserMessages_DOTA_UM_CustomHeaderMessage          entityType = 539
+	EDotaUserMessages_DOTA_UM_QuickBuyAlert                entityType = 540
+	EDotaUserMessages_DOTA_UM_StatsHeroDetails             entityType = 541
+	EDotaUserMessages_DOTA_UM_PredictionResult             entityType = 542
+	EDotaUserMessages_DOTA_UM_ModifierAlert                entityType = 543
+	EDotaUserMessages_DOTA_UM_HPManaAlert                  entityType = 544
+	EDotaUserMessages_DOTA_UM_GlyphAlert                   entityType = 545
+	EDotaUserMessages_DOTA_UM_BeastChat                    entityType = 546
+	EDotaUserMessages_DOTA_UM_SpectatorPlayerUnitOrders    entityType = 547
+	EDotaUserMessages_DOTA_UM_CustomHudElement_Create      entityType = 548
+	EDotaUserMessages_DOTA_UM_CustomHudElement_Modify      entityType = 549
+	EDotaUserMessages_DOTA_UM_CustomHudElement_Destroy     entityType = 550
+	EDotaUserMessages_DOTA_UM_CompendiumState              entityType = 551
+	EDotaUserMessages_DOTA_UM_ProjectionAbility            entityType = 552
+	EDotaUserMessages_DOTA_UM_ProjectionEvent              entityType = 553
+	EDotaUserMessages_DOTA_UM_CombatLogDataHLTV            entityType = 554
+	EDotaUserMessages_DOTA_UM_XPAlert                      entityType = 555
+	EDotaUserMessages_DOTA_UM_UpdateQuestProgress          entityType = 556
+	EDotaUserMessages_DOTA_UM_MatchMetadata                entityType = 557
+	EDotaUserMessages_DOTA_UM_QuestStatus                  entityType = 559
 )
 
-func (d datagramType) String() string {
-	switch d {
+func (t packetType) String() string {
+	switch t {
 	case EDemoCommands_DEM_Stop:
 		return "EDemoCommands_DEM_Stop"
 	case EDemoCommands_DEM_FileHeader:
@@ -270,12 +270,12 @@ func (d datagramType) String() string {
 	case EDemoCommands_DEM_SpawnGroups:
 		return "EDemoCommands_DEM_SpawnGroups"
 	default:
-		return "UnknownDatagramType"
+		return fmt.Sprintf("UnknownPacketType_%d", t)
 	}
 }
 
-func (e entityType) String() string {
-	switch e {
+func (t entityType) String() string {
+	switch t {
 	case NET_Messages_net_NOP:
 		return "NET_Messages_net_NOP"
 	case NET_Messages_net_Disconnect:
@@ -432,8 +432,6 @@ func (e entityType) String() string {
 		return "EBaseUserMessages_UM_CameraTransition"
 	case EBaseUserMessages_UM_AudioParameter:
 		return "EBaseUserMessages_UM_AudioParameter"
-	case EBaseGameEvents_GE_VDebugGameSessionIDEvent:
-		return "EBaseGameEvents_GE_VDebugGameSessionIDEvent"
 	case EBaseGameEvents_GE_PlaceDecalEvent:
 		return "EBaseGameEvents_GE_PlaceDecalEvent"
 	case EBaseGameEvents_GE_ClearWorldDecalsEvent:
@@ -643,7 +641,7 @@ func (e entityType) String() string {
 	case EDotaUserMessages_DOTA_UM_QuestStatus:
 		return "EDotaUserMessages_DOTA_UM_QuestStatus"
 	default:
-		return "UnknownEntityType"
+		return fmt.Sprintf("UnknownEntityType_%d", t)
 	}
 }
 
@@ -665,16 +663,16 @@ func (m messageStatus) Error() string {
 	}
 }
 
-type datagramFactory map[datagramType]func() proto.Message
+type packetFactory map[packetType]func() proto.Message
 type entityFactory map[entityType]func() proto.Message
 
 type messageFactory struct {
-	datagrams datagramFactory
-	entities  entityFactory
+	packets  packetFactory
+	entities entityFactory
 }
 
-func (m *messageFactory) BuildDatagram(id datagramType) (proto.Message, error) {
-	fn, ok := m.datagrams[id]
+func (m *messageFactory) BuildPacket(id packetType) (proto.Message, error) {
+	fn, ok := m.packets[id]
 	if !ok {
 		return nil, m_Unknown
 	}
@@ -690,7 +688,7 @@ func (m *messageFactory) BuildEntity(id entityType) (proto.Message, error) {
 }
 
 var messages = messageFactory{
-	datagramFactory{
+	packetFactory{
 		EDemoCommands_DEM_Stop:                func() proto.Message { return new(dota.CDemoStop) },
 		EDemoCommands_DEM_FileHeader:          func() proto.Message { return new(dota.CDemoFileHeader) },
 		EDemoCommands_DEM_FileInfo:            func() proto.Message { return new(dota.CDemoFileInfo) },
@@ -787,7 +785,6 @@ var messages = messageFactory{
 		EBaseUserMessages_UM_CloseCaptionPlaceholder:           func() proto.Message { return new(dota.CUserMessageCloseCaptionPlaceholder) },
 		EBaseUserMessages_UM_CameraTransition:                  func() proto.Message { return new(dota.CUserMessageCameraTransition) },
 		EBaseUserMessages_UM_AudioParameter:                    func() proto.Message { return new(dota.CUserMessageAudioParameter) },
-		EBaseGameEvents_GE_VDebugGameSessionIDEvent:            func() proto.Message { return new(dota.CMsgVDebugGameSessionIDEvent) },
 		EBaseGameEvents_GE_PlaceDecalEvent:                     func() proto.Message { return new(dota.CMsgPlaceDecalEvent) },
 		EBaseGameEvents_GE_ClearWorldDecalsEvent:               func() proto.Message { return new(dota.CMsgClearWorldDecalsEvent) },
 		EBaseGameEvents_GE_ClearEntityDecalsEvent:              func() proto.Message { return new(dota.CMsgClearEntityDecalsEvent) },

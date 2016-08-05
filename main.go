@@ -49,8 +49,6 @@ type options struct {
 	f          string // input file
 	memprofile string
 	cpuprofile string
-	datagrams  bool // dump datagrams or no
-	packets    bool // dump packets or no
 }
 
 func (o options) input() (io.Reader, error) {
@@ -105,8 +103,6 @@ func main() {
 	flag.BoolVar(&opts.b, "b", false, "input is expected to be bzip-compressed")
 	flag.BoolVar(&opts.v, "v", false, "verbose mode")
 	flag.StringVar(&opts.f, "f", "--", "input file to be used. -- means stdin")
-	flag.BoolVar(&opts.datagrams, "datagrams", false, "dump top-level datagram info to stdout")
-	flag.BoolVar(&opts.packets, "packets", false, "dump packets to stdout")
 	flag.StringVar(&opts.memprofile, "memprofile", "", "memory profile destination")
 	flag.StringVar(&opts.cpuprofile, "cpuprofile", "", "cpu profile destination")
 	flag.Parse()
@@ -125,8 +121,6 @@ func main() {
 	}
 
 	p := newParser(r)
-	p.dumpDatagrams = opts.datagrams
-	p.dumpPackets = opts.packets
 	if err := p.start(); err != nil {
 		bail(1, "parse error: %v", err)
 	}

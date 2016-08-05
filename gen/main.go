@@ -20,7 +20,7 @@ var (
 	messageTypes    = make(map[string]bool)
 	enumTypes       = make(map[string]bool)
 	entityTypes     = make(typeMap)
-	cmdTypes        = make(typeMap)
+	packetTypes     = make(typeMap)
 	cmdEnumType     = "EDemoCommands"
 	entityEnumTypes = map[string]bool{
 		"NET_Messages":        true,
@@ -76,42 +76,43 @@ var (
 ////////////////////////////////////////////////////////////////////////////////
 
 import (
+	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
-type datagramType int32
+type packetType int32
 type entityType int32
 
 const (
-	EDemoCommands_DEM_Error datagramType = -1
-{{- range $id, $spec := .Commands }}
-	{{$spec.EnumName}} datagramType = {{$id}}
+	EDemoCommands_DEM_Error packetType = -1
+{{- range $id, $spec := .Packets }}
+	{{$spec.EnumName}} packetType = {{$id}}
 {{- end }}
 {{- range $id, $spec := .Entities }}
 	{{$spec.EnumName}} entityType = {{$id}}
 {{- end }}
 )
 
-func (d datagramType) String() string {
-	switch d {
-{{- range $id, $spec := .Commands }}
+func (t packetType) String() string {
+	switch t {
+{{- range $id, $spec := .Packets }}
 	case {{$spec.EnumName}}:
 		return "{{$spec.EnumName}}"
 {{- end }}
 	default:
-		return "UnknownDatagramType"
+		return fmt.Sprintf("UnknownPacketType_%d", t)
 	}
 }
 
-func (e entityType) String() string {
-	switch e {
+func (t entityType) String() string {
+	switch t {
 {{- range $id, $spec := .Entities }}
 	case {{$spec.EnumName}}:
 		return "{{$spec.EnumName}}"
 {{- end }}
 	default:
-		return "UnknownEntityType"
+		return fmt.Sprintf("UnknownEntityType_%d", t)
 	}
 }
 
@@ -133,16 +134,16 @@ func (m messageStatus) Error() string {
 	}
 }
 
-type datagramFactory map[datagramType]func() proto.Message
+type packetFactory map[packetType]func() proto.Message
 type entityFactory map[entityType]func() proto.Message
 
 type messageFactory struct {
-	datagrams datagramFactory
+	packets packetFactory
 	entities entityFactory
 }
 
-func (m *messageFactory) BuildDatagram(id datagramType) (proto.Message, error) {
-	fn, ok := m.datagrams[id]
+func (m *messageFactory) BuildPacket(id packetType) (proto.Message, error) {
+	fn, ok := m.packets[id]
 	if !ok {
 		return nil, m_Unknown
 	}
@@ -158,8 +159,8 @@ func (m *messageFactory) BuildEntity(id entityType) (proto.Message, error) {
 }
 
 var messages = messageFactory{
-	datagramFactory{
-	{{- range $id, $spec := .Commands }}
+	packetFactory{
+	{{- range $id, $spec := .Packets }}
 		{{$spec.EnumName}}: func() proto.Message { return new(dota.{{$spec.TypeName}}) },
 	{{- end }}
 	},
@@ -253,7 +254,7 @@ func processValueSpec(spec *ast.ValueSpec) {
 		if isEntityType {
 			entityTypes[n] = messageSpec{EnumName: name.Name}
 		} else {
-			cmdTypes[n] = messageSpec{EnumName: name.Name}
+			packetTypes[n] = messageSpec{EnumName: name.Name}
 		}
 	}
 }
@@ -347,14 +348,14 @@ func main() {
 		processPackage(name, pkg)
 	}
 
-	cmdTypes.fillTypeNames()
+	packetTypes.fillTypeNames()
 	entityTypes.fillTypeNames()
 
 	var ctx = struct {
-		Commands typeMap
+		Packets  typeMap
 		Entities typeMap
 	}{
-		Commands: cmdTypes,
+		Packets:  packetTypes,
 		Entities: entityTypes,
 	}
 

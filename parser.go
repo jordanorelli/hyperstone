@@ -15,9 +15,6 @@ type parser struct {
 	// the source of replay bytes. Must NOT be compressed.
 	source *bufio.Reader
 
-	dumpDatagrams bool
-	dumpPackets   bool
-
 	scratch []byte
 	pbuf    *proto.Buffer
 }
@@ -43,26 +40,22 @@ func (p *parser) start() error {
 
 func (p *parser) run() error {
 	for {
-		gram, err := p.readDatagram()
+		gram, err := p.readPacket()
 		if err != nil {
-			return wrap(err, "read datagram error in run loop")
+			return wrap(err, "read packet error in run loop")
 		}
-		p.handleDataGram(gram)
+		p.handlePacket(gram)
 	}
 }
 
-func (p *parser) handleDataGram(d *dataGram) error {
-	if p.dumpDatagrams {
-		fmt.Println(d)
-	}
-
+func (p *parser) handlePacket(d *packet) error {
 	if len(d.body) == 0 {
 		return nil
 	}
 
 	msg, err := d.Open(&messages, p.pbuf)
 	if err != nil {
-		fmt.Printf("datagram open error: %v\n", err)
+		fmt.Printf("packet open error: %v\n", err)
 		return nil
 	}
 
@@ -88,9 +81,6 @@ func (p *parser) handleDemoPacket(packet *dota.CDemoPacket) error {
 			return nil
 		default:
 			return err
-		}
-		if p.dumpPackets {
-			fmt.Printf("\t%v\n", entity{t: t, size: uint32(s), body: b})
 		}
 		e, err := messages.BuildEntity(t)
 		if err != nil {
@@ -158,13 +148,13 @@ func (p *parser) checkHeader() (bool, error) {
 	return string(buf) == replayHeader, nil
 }
 
-// reads the next datagram type indicator off the wire. Also looks for a
+// reads the next packet type indicator off the wire. Also looks for a
 // compression flag, returning true if the contents to follow are snappy
 // compressed, false otherwise.
-func (p *parser) readDatagramType() (datagramType, bool, error) {
+func (p *parser) readPacketType() (packetType, bool, error) {
 	n, err := p.decodeVarint()
 	if err != nil {
-		return EDemoCommands_DEM_Error, false, wrap(err, "readDatagramType couldn't read varint")
+		return EDemoCommands_DEM_Error, false, wrap(err, "readPacketType couldn't read varint")
 	}
 
 	compressed := false
@@ -172,42 +162,42 @@ func (p *parser) readDatagramType() (datagramType, bool, error) {
 		compressed = true
 		n &^= 0x40
 	}
-	return datagramType(n), compressed, nil
+	return packetType(n), compressed, nil
 }
 
-func (p *parser) readDatagram() (*dataGram, error) {
-	cmd, compressed, err := p.readDatagramType()
+func (p *parser) readPacket() (*packet, error) {
+	cmd, compressed, err := p.readPacketType()
 	if err != nil {
-		return nil, wrap(err, "readDatagram couldn't get a command")
+		return nil, wrap(err, "readPacket couldn't get a command")
 	}
 
 	tick, err := p.decodeVarint()
 	if err != nil {
-		return nil, wrap(err, "readDatagram couldn't read the tick value")
+		return nil, wrap(err, "readPacket couldn't read the tick value")
 	}
 
 	size, err := p.decodeVarint()
 	if err != nil {
-		return nil, wrap(err, "readDatagram couldn't read the size value")
+		return nil, wrap(err, "readPacket couldn't read the size value")
 	}
 
 	if size > 0 {
 		buf := make([]byte, int(size))
 		if _, err := io.ReadFull(p.source, buf); err != nil {
-			return nil, wrap(err, "readDatagram couldn't read datagram body")
+			return nil, wrap(err, "readPacket couldn't read packet body")
 		}
 
 		if compressed {
 			var err error
 			buf, err = snappy.Decode(nil, buf)
 			if err != nil {
-				return nil, wrap(err, "readDatagram couldn't snappy decode body")
+				return nil, wrap(err, "readPacket couldn't snappy decode body")
 			}
 		}
 		// TODO: pool these!
-		return &dataGram{cmd, int64(tick), buf}, nil
+		return &packet{cmd, int64(tick), buf}, nil
 	}
 
 	// TODO: pool these!
-	return &dataGram{cmd, int64(tick), nil}, nil
+	return &packet{cmd, int64(tick), nil}, nil
 }
