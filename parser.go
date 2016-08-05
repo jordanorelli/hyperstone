@@ -17,11 +17,14 @@ type parser struct {
 
 	dumpDatagrams bool
 	dumpPackets   bool
+
+	scratch []byte
+	pbuf    *proto.Buffer
 }
 
 func newParser(r io.Reader) *parser {
 	br := bufio.NewReaderSize(r, 1<<16)
-	return &parser{source: br}
+	return &parser{source: br, scratch: make([]byte, 1<<17), pbuf: new(proto.Buffer)}
 }
 
 func (p *parser) start() error {
@@ -57,7 +60,7 @@ func (p *parser) handleDataGram(d *dataGram) error {
 		return nil
 	}
 
-	msg, err := d.Open(&messages)
+	msg, err := d.Open(&messages, p.pbuf)
 	if err != nil {
 		fmt.Printf("datagram open error: %v\n", err)
 		return nil
@@ -75,8 +78,9 @@ func (p *parser) handleDemoPacket(packet *dota.CDemoPacket) error {
 	for {
 		t := entityType(br.ReadUBitVar())
 		s := br.ReadVarInt()
-		b := make([]byte, s)
+		b := p.scratch[:s]
 		br.Read(b)
+		p.pbuf.SetBuf(b)
 		switch err := br.Err(); err {
 		case nil:
 			break
@@ -93,7 +97,7 @@ func (p *parser) handleDemoPacket(packet *dota.CDemoPacket) error {
 			fmt.Printf("\tskipping entity of size %d, type %s: %v\n", len(b), t, err)
 			continue
 		}
-		if err := proto.Unmarshal(b, e); err != nil {
+		if err := p.pbuf.Unmarshal(e); err != nil {
 			fmt.Printf("entity unmarshal error: %v\n", err)
 		}
 	}

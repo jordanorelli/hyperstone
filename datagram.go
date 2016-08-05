@@ -21,12 +21,13 @@ func (g dataGram) String() string {
 	return fmt.Sprintf("{dataGram cmd: %v tick: %v size: %d body: %x}", g.cmd, g.tick, len(g.body), g.body)
 }
 
-func (g *dataGram) Open(m *messageFactory) (proto.Message, error) {
+func (g *dataGram) Open(m *messageFactory, pbuf *proto.Buffer) (proto.Message, error) {
 	msg, err := m.BuildDatagram(g.cmd)
 	if err != nil {
 		return nil, err
 	}
-	if err := proto.Unmarshal(g.body, msg); err != nil {
+	pbuf.SetBuf(g.body)
+	if err := pbuf.Unmarshal(msg); err != nil {
 		return nil, err
 	}
 	return msg, nil
