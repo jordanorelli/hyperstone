@@ -17,6 +17,10 @@ type streamReader struct {
 // ReadBits reads the given number of bits and returns them in the
 // least-significant part of a uint64.
 func (r *streamReader) ReadBits(bits uint) (n uint64) {
+	if r.err != nil {
+		return 0
+	}
+
 	for bits > r.bits {
 		b, err := r.src.ReadByte()
 		if err != nil {
@@ -38,37 +42,34 @@ func (r *streamReader) DiscardBits(n int) {
 }
 
 // ReadByte reads a single byte, regardless of alignment.
-func (r *streamReader) ReadByte() (byte, error) {
+func (r *streamReader) ReadByte() byte {
 	if r.bits == 0 {
-		return r.src.ReadByte()
+		b, err := r.src.ReadByte()
+		if err != nil {
+			r.err = err
+			return 0
+		}
+		return b
 	}
-	b := byte(r.ReadBits(8))
-	if err := r.Err(); err != nil {
-		return 0, err
-	}
-	return b, nil
+	return byte(r.ReadBits(8))
 }
 
 // Read reads like an io.Reader, taking care of alignment internally.
-func (r *streamReader) Read(buf []byte) (int, error) {
+func (r *streamReader) Read(buf []byte) int {
 	for i := 0; i < len(buf); i++ {
-		b, err := r.ReadByte()
-		if err != nil {
-			return 0, err
+		b := r.ReadByte()
+		if r.err != nil {
+			return 0
 		}
 		buf[i] = b
 	}
-	return len(buf), nil
+	return len(buf)
 }
 
 // discards N byte of data on the reader or until EOF
 func (r *streamReader) DiscardBytes(n int) {
 	for i := 0; i < n; i++ {
-		_, err := r.ReadByte()
-		if err != nil {
-			r.err = err
-			return
-		}
+		r.ReadByte()
 	}
 }
 

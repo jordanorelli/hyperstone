@@ -6,11 +6,12 @@ import (
 	"io"
 )
 
+// Reader allows for the reading and skipping of bits and bytes.
 type Reader interface {
 	ReadBits(uint) uint64
 	DiscardBits(int)
-	ReadByte() (byte, error)
-	Read([]byte) (int, error)
+	ReadByte() byte
+	Read([]byte) int
 	DiscardBytes(int)
 	Err() error
 }
