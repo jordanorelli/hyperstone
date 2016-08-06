@@ -41,6 +41,16 @@ func (r *bufReader) ReadByte() byte {
 }
 
 func (r *bufReader) Read(buf []byte) int {
+	if r.bits == 0 {
+		if len(r.src) < len(buf) {
+			r.err = io.EOF
+			return 0
+		}
+		copy(buf, r.src[:len(buf)])
+		r.src = r.src[len(buf):]
+		return len(buf)
+	}
+
 	for i := 0; i < len(buf); i++ {
 		b := r.ReadByte()
 		if r.err != nil {
@@ -52,9 +62,27 @@ func (r *bufReader) Read(buf []byte) int {
 }
 
 func (r *bufReader) DiscardBytes(n int) {
-	for i := 0; i < n; i++ {
-		r.ReadByte()
+	if r.bits == 0 {
+		if len(r.src) < n {
+			r.err = io.EOF
+			return
+		}
+		r.src = r.src[n:]
+		return
 	}
+
+	for r.bits > 8 {
+		r.bits -= 8
+		n -= 1
+	}
+
+	if len(r.src) < n {
+		r.err = io.EOF
+		return
+	}
+
+	r.n = uint64(r.src[n-1]) >> (8 - r.bits)
+	r.src = r.src[n:]
 }
 
 func (r *bufReader) Err() error { return r.err }
