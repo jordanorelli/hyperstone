@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"runtime/pprof"
 	"strings"
 
@@ -126,7 +127,7 @@ func main() {
 	p := newParser(r)
 	go p.run(c)
 	for msg := range c {
-		fmt.Println(msg)
+		fmt.Println(reflect.TypeOf(msg))
 	}
 	if p.err != nil {
 		fmt.Println(err)
