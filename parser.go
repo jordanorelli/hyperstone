@@ -7,8 +7,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
-	// "github.com/jordanorelli/hyperstone/bit"
-	// "github.com/jordanorelli/hyperstone/dota"
+	"github.com/jordanorelli/hyperstone/bit"
+	"github.com/jordanorelli/hyperstone/dota"
 )
 
 type parser struct {
@@ -28,7 +28,7 @@ func newParser(r io.Reader) *parser {
 	}
 }
 
-func (p *parser) run(out chan proto.Message) {
+func (p *parser) run(out chan maybe) {
 	defer close(out)
 	ok, err := p.checkHeader()
 	if err != nil {
@@ -51,37 +51,44 @@ func (p *parser) run(out chan proto.Message) {
 			p.err = wrap(err, "open packet error in run loop")
 			return
 		}
-		out <- msg
+
+		switch m := msg.(type) {
+		case *dota.CDemoPacket:
+			p.emitChildren(m, out)
+		}
+
+		out <- maybe{Message: msg}
 	}
 }
 
-//
-// func (p *parser) handleDemoPacket(packet *dota.CDemoPacket) error {
-// 	br := bit.NewBytesReader(packet.GetData())
-// 	for {
-// 		t := entityType(br.ReadUBitVar())
-// 		s := br.ReadVarInt()
-// 		b := p.scratch[:s]
-// 		br.Read(b)
-// 		p.pbuf.SetBuf(b)
-// 		switch err := br.Err(); err {
-// 		case nil:
-// 			break
-// 		case io.EOF:
-// 			return nil
-// 		default:
-// 			return err
-// 		}
-// 		e, err := messages.BuildEntity(t)
-// 		if err != nil {
-// 			fmt.Printf("\tskipping entity of size %d, type %s: %v\n", len(b), t, err)
-// 			continue
-// 		}
-// 		if err := p.pbuf.Unmarshal(e); err != nil {
-// 			fmt.Printf("entity unmarshal error: %v\n", err)
-// 		}
-// 	}
-// }
+func (p *parser) emitChildren(pkt *dota.CDemoPacket, c chan maybe) {
+	br := bit.NewBytesReader(pkt.GetData())
+	for {
+		t := entityType(br.ReadUBitVar())
+		s := br.ReadVarInt()
+		b := p.scratch[:s]
+		br.Read(b)
+		p.pbuf.SetBuf(b)
+		switch err := br.Err(); err {
+		case nil:
+			break
+		case io.EOF:
+			return
+		default:
+			c <- maybe{error: err}
+			return
+		}
+		e, err := messages.BuildEntity(t)
+		if err != nil {
+			c <- maybe{error: wrap(err, "skipping entity of size %d, type %s", len(b), t)}
+			continue
+		}
+		if err := p.pbuf.Unmarshal(e); err != nil {
+			c <- maybe{error: wrap(err, "entity unmarshal error")}
+		}
+		c <- maybe{Message: e}
+	}
+}
 
 // DecodeVarint reads a varint-encoded integer from the source reader.
 // It returns the value as a uin64 and any errors encountered. The reader will

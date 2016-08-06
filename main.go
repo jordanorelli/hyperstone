@@ -12,8 +12,6 @@ import (
 	"reflect"
 	"runtime/pprof"
 	"strings"
-
-	"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -123,11 +121,15 @@ func main() {
 		bail(1, "input error: %v", err)
 	}
 
-	c := make(chan proto.Message, 32)
+	c := make(chan maybe, 32)
 	p := newParser(r)
 	go p.run(c)
-	for msg := range c {
-		fmt.Println(reflect.TypeOf(msg))
+	for m := range c {
+		if m.error != nil {
+			fmt.Fprintln(os.Stderr, m.error)
+		} else {
+			fmt.Println(reflect.TypeOf(m.Message))
+		}
 	}
 	if p.err != nil {
 		fmt.Println(err)
