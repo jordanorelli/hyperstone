@@ -18,6 +18,9 @@ type parser struct {
 	scratch []byte
 	pbuf    *proto.Buffer
 	err     error
+
+	ewl entityWhitelist
+	pwl packetWhitelist
 }
 
 func newParser(r io.Reader) *parser {
@@ -25,6 +28,8 @@ func newParser(r io.Reader) *parser {
 		source:  bufio.NewReaderSize(r, 1<<16),
 		scratch: make([]byte, 1<<17),
 		pbuf:    new(proto.Buffer),
+		ewl:     allEntities,
+		pwl:     allPackets,
 	}
 }
 
@@ -46,6 +51,7 @@ func (p *parser) run(out chan maybe) {
 			p.err = wrap(err, "read packet error in run loop")
 			return
 		}
+
 		msg, err := pkt.Open(&messages, p.pbuf)
 		if err != nil {
 			p.err = wrap(err, "open packet error in run loop")
@@ -68,7 +74,7 @@ func (p *parser) emitChildren(pkt *dota.CDemoPacket, c chan maybe) {
 		s := br.ReadVarInt()
 		b := p.scratch[:s]
 		br.Read(b)
-		p.pbuf.SetBuf(b)
+
 		switch err := br.Err(); err {
 		case nil:
 			break
@@ -78,6 +84,12 @@ func (p *parser) emitChildren(pkt *dota.CDemoPacket, c chan maybe) {
 			c <- maybe{error: err}
 			return
 		}
+
+		if !p.ewl[t] {
+			continue
+		}
+
+		p.pbuf.SetBuf(b)
 		e, err := messages.BuildEntity(t)
 		if err != nil {
 			c <- maybe{error: wrap(err, "skipping entity of size %d, type %s", len(b), t)}
@@ -85,6 +97,7 @@ func (p *parser) emitChildren(pkt *dota.CDemoPacket, c chan maybe) {
 		}
 		if err := p.pbuf.Unmarshal(e); err != nil {
 			c <- maybe{error: wrap(err, "entity unmarshal error")}
+			continue
 		}
 		c <- maybe{Message: e}
 	}
@@ -176,6 +189,16 @@ func (p *parser) readPacket() (*packet, error) {
 	size, err := p.decodeVarint()
 	if err != nil {
 		return nil, wrap(err, "readPacket couldn't read the size value")
+	}
+
+	if !p.pwl[cmd] {
+		if size > 0 {
+			_, err := p.source.Discard(int(size))
+			if err != nil {
+				return nil, wrap(err, "readPacket couldn't skip packet length %d", size)
+			}
+		}
+		return p.readPacket()
 	}
 
 	if size > 0 {

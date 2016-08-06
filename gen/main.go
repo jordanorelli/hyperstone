@@ -158,6 +158,94 @@ func (m *messageFactory) BuildEntity(id entityType) (proto.Message, error) {
 	return fn(), nil
 }
 
+type packetWhitelist map[packetType]bool
+type entityWhitelist map[entityType]bool
+
+var allPackets = packetWhitelist{
+	{{- range $id, $spec := .Packets }}
+		{{$spec.EnumName}}: true,
+	{{- end }}
+}
+
+var allEntities = entityWhitelist{
+	{{- range $id, $spec := .Entities }}
+		{{$spec.EnumName}}: true,
+	{{- end }}
+}
+
+var netEntities = entityWhitelist{
+	{{- range $id, $spec := .Entities }}
+		{{- if eq $spec.EnumType "NET_Messages" }}
+		{{$spec.EnumName}}: true,
+		{{- end }}
+	{{- end}}
+}
+
+var svcEntities = entityWhitelist{
+	{{- range $id, $spec := .Entities }}
+		{{- if eq $spec.EnumType "SVC_Messages" }}
+		{{$spec.EnumName}}: true,
+		{{- end }}
+	{{- end}}
+}
+
+var baseUserEntities = entityWhitelist{
+	{{- range $id, $spec := .Entities }}
+		{{- if eq $spec.EnumType "EBaseUserMessages" }}
+		{{$spec.EnumName}}: true,
+		{{- end }}
+	{{- end}}
+}
+
+
+//     ffffffffffffffff                                        kkkkkkkk
+//    f::::::::::::::::f                                       k::::::k
+//   f::::::::::::::::::f                                      k::::::k
+//   f::::::fffffff:::::f                                      k::::::k
+//   f:::::f       ffffffuuuuuu    uuuuuu      cccccccccccccccc k:::::k    kkkkkkk
+//   f:::::f             u::::u    u::::u    cc:::::::::::::::c k:::::k   k:::::k
+//  f:::::::ffffff       u::::u    u::::u   c:::::::::::::::::c k:::::k  k:::::k
+//  f::::::::::::f       u::::u    u::::u  c:::::::cccccc:::::c k:::::k k:::::k
+//  f::::::::::::f       u::::u    u::::u  c::::::c     ccccccc k::::::k:::::k
+//  f:::::::ffffff       u::::u    u::::u  c:::::c              k:::::::::::k
+//   f:::::f             u::::u    u::::u  c:::::c              k:::::::::::k
+//   f:::::f             u:::::uuuu:::::u  c::::::c     ccccccc k::::::k:::::k
+//  f:::::::f            u:::::::::::::::uuc:::::::cccccc:::::ck::::::k k:::::k
+//  f:::::::f             u:::::::::::::::u c:::::::::::::::::ck::::::k  k:::::k
+//  f:::::::f              uu::::::::uu:::u  cc:::::::::::::::ck::::::k   k:::::k
+//  fffffffff                uuuuuuuu  uuuu    cccccccccccccccckkkkkkkk    kkkkkkk
+var entityEntities = entityWhitelist{
+	{{- range $id, $spec := .Entities }}
+		{{- if eq $spec.EnumType "EBaseEntityMessages" }}
+		{{$spec.EnumName}}: true,
+		{{- end }}
+	{{- end}}
+}
+
+var gameEntities = entityWhitelist{
+	{{- range $id, $spec := .Entities }}
+		{{- if eq $spec.EnumType "EBaseGameEvents" }}
+		{{$spec.EnumName}}: true,
+		{{- end }}
+	{{- end}}
+}
+
+var dotaUserEntities = entityWhitelist{
+	{{- range $id, $spec := .Entities }}
+		{{- if eq $spec.EnumType "EDotaUserMessages" }}
+		{{$spec.EnumName}}: true,
+		{{- end }}
+	{{- end}}
+}
+
+var eteEntities = entityWhitelist{
+	{{- range $id, $spec := .Entities }}
+		{{- if eq $spec.EnumType "ETEProtobufIds" }}
+		{{$spec.EnumName}}: true,
+		{{- end }}
+	{{- end}}
+}
+
 var messages = messageFactory{
 	packetFactory{
 	{{- range $id, $spec := .Packets }}
@@ -174,6 +262,7 @@ var messages = messageFactory{
 )
 
 type messageSpec struct {
+	EnumType string
 	EnumName string
 	TypeName string
 }
@@ -252,9 +341,9 @@ func processValueSpec(spec *ast.ValueSpec) {
 		}
 
 		if isEntityType {
-			entityTypes[n] = messageSpec{EnumName: name.Name}
+			entityTypes[n] = messageSpec{EnumName: name.Name, EnumType: t.Name}
 		} else {
-			packetTypes[n] = messageSpec{EnumName: name.Name}
+			packetTypes[n] = messageSpec{EnumName: name.Name, EnumType: t.Name}
 		}
 	}
 }
