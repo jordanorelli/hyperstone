@@ -11,6 +11,8 @@ import (
 	"os"
 	"runtime/pprof"
 	"strings"
+
+	"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -120,11 +122,13 @@ func main() {
 		bail(1, "input error: %v", err)
 	}
 
+	c := make(chan proto.Message, 32)
 	p := newParser(r)
-	if err := p.start(); err != nil {
-		bail(1, "parse error: %v", err)
+	go p.run(c)
+	for msg := range c {
+		fmt.Println(msg)
 	}
-	if err := p.run(); err != nil && err != io.EOF {
-		bail(1, "run error: %v", err)
+	if p.err != nil {
+		fmt.Println(err)
 	}
 }

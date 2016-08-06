@@ -7,8 +7,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
-	"github.com/jordanorelli/hyperstone/bit"
-	"github.com/jordanorelli/hyperstone/dota"
+	// "github.com/jordanorelli/hyperstone/bit"
+	// "github.com/jordanorelli/hyperstone/dota"
 )
 
 type parser struct {
@@ -17,81 +17,71 @@ type parser struct {
 
 	scratch []byte
 	pbuf    *proto.Buffer
+	err     error
 }
 
 func newParser(r io.Reader) *parser {
-	br := bufio.NewReaderSize(r, 1<<16)
-	return &parser{source: br, scratch: make([]byte, 1<<17), pbuf: new(proto.Buffer)}
+	return &parser{
+		source:  bufio.NewReaderSize(r, 1<<16),
+		scratch: make([]byte, 1<<17),
+		pbuf:    new(proto.Buffer),
+	}
 }
 
-func (p *parser) start() error {
+func (p *parser) run(out chan proto.Message) {
+	defer close(out)
 	ok, err := p.checkHeader()
 	if err != nil {
-		return wrap(err, "parser start error")
+		p.err = wrap(err, "parser start error")
 	}
 	if !ok {
-		return fmt.Errorf("parser start error: invalid header")
+		p.err = fmt.Errorf("parser start error: invalid header")
 	}
 	if _, err := p.source.Discard(8); err != nil {
-		return wrap(err, "parser start error")
+		p.err = wrap(err, "parser start error")
 	}
-	return nil
-}
-
-func (p *parser) run() error {
 	for {
-		gram, err := p.readPacket()
+		pkt, err := p.readPacket()
 		if err != nil {
-			return wrap(err, "read packet error in run loop")
+			p.err = wrap(err, "read packet error in run loop")
+			return
 		}
-		p.handlePacket(gram)
-	}
-}
-
-func (p *parser) handlePacket(d *packet) error {
-	if len(d.body) == 0 {
-		return nil
-	}
-
-	msg, err := d.Open(&messages, p.pbuf)
-	if err != nil {
-		fmt.Printf("packet open error: %v\n", err)
-		return nil
-	}
-
-	switch v := msg.(type) {
-	case *dota.CDemoPacket:
-		p.handleDemoPacket(v)
-	}
-	return nil
-}
-
-func (p *parser) handleDemoPacket(packet *dota.CDemoPacket) error {
-	br := bit.NewBytesReader(packet.GetData())
-	for {
-		t := entityType(br.ReadUBitVar())
-		s := br.ReadVarInt()
-		b := p.scratch[:s]
-		br.Read(b)
-		p.pbuf.SetBuf(b)
-		switch err := br.Err(); err {
-		case nil:
-			break
-		case io.EOF:
-			return nil
-		default:
-			return err
-		}
-		e, err := messages.BuildEntity(t)
+		msg, err := pkt.Open(&messages, p.pbuf)
 		if err != nil {
-			fmt.Printf("\tskipping entity of size %d, type %s: %v\n", len(b), t, err)
-			continue
+			p.err = wrap(err, "open packet error in run loop")
+			return
 		}
-		if err := p.pbuf.Unmarshal(e); err != nil {
-			fmt.Printf("entity unmarshal error: %v\n", err)
-		}
+		out <- msg
 	}
 }
+
+//
+// func (p *parser) handleDemoPacket(packet *dota.CDemoPacket) error {
+// 	br := bit.NewBytesReader(packet.GetData())
+// 	for {
+// 		t := entityType(br.ReadUBitVar())
+// 		s := br.ReadVarInt()
+// 		b := p.scratch[:s]
+// 		br.Read(b)
+// 		p.pbuf.SetBuf(b)
+// 		switch err := br.Err(); err {
+// 		case nil:
+// 			break
+// 		case io.EOF:
+// 			return nil
+// 		default:
+// 			return err
+// 		}
+// 		e, err := messages.BuildEntity(t)
+// 		if err != nil {
+// 			fmt.Printf("\tskipping entity of size %d, type %s: %v\n", len(b), t, err)
+// 			continue
+// 		}
+// 		if err := p.pbuf.Unmarshal(e); err != nil {
+// 			fmt.Printf("entity unmarshal error: %v\n", err)
+// 		}
+// 	}
+// }
 
 // DecodeVarint reads a varint-encoded integer from the source reader.
 // It returns the value as a uin64 and any errors encountered. The reader will
