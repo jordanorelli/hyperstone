@@ -36,11 +36,6 @@ func (r *streamReader) ReadBits(bits uint) (n uint64) {
 	return
 }
 
-// discards up to bits bits. returns a bool indicating wheter any errors occured.
-func (r *streamReader) DiscardBits(n int) {
-	r.ReadBits(uint(n))
-}
-
 // ReadByte reads a single byte, regardless of alignment.
 func (r *streamReader) ReadByte() byte {
 	if r.bits == 0 {

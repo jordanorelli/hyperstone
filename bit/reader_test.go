@@ -18,7 +18,7 @@ var (
 func TestReadBits(t *testing.T) {
 	var (
 		assert = assert.New(t)
-		r      *Reader
+		r      Reader
 	)
 
 	// aligned reading
@@ -62,16 +62,15 @@ func TestReadBits(t *testing.T) {
 func TestRead(t *testing.T) {
 	var (
 		assert = assert.New(t)
-		r      *Reader
+		r      Reader
 		buf    []byte
 		n      int
-		err    error
 	)
 
 	r = NewBytesReader(badFood)
 	buf = make([]byte, 4)
-	n, err = r.Read(buf)
-	assert.NoError(err)
+	n = r.Read(buf)
+	assert.NoError(r.Err())
 	assert.Equal(4, n)
 	assert.Equal(badFood, buf)
 
@@ -83,8 +82,8 @@ func TestRead(t *testing.T) {
 	//                     ^------^..........^ : 1111 1000
 	buf = make([]byte, 3)
 
-	n, err = r.Read(buf)
-	assert.NoError(err)
+	n = r.Read(buf)
+	assert.NoError(r.Err())
 	assert.Equal(3, n)
 
 	expected := []byte{0xc5, 0x56, 0xf8}
@@ -94,7 +93,7 @@ func TestRead(t *testing.T) {
 func TestUbitVar(t *testing.T) {
 	var (
 		assert = assert.New(t)
-		r      *Reader
+		r      Reader
 		u      uint64
 	)
 
@@ -108,7 +107,7 @@ func TestUbitVar(t *testing.T) {
 	// 1000 1011 1010 1101 1111 0000 0000 1101
 	//  ^^                                     : prefix 00
 	//    ^---^                                : data 0101
-	u = r.ReadUBitVar()
+	u = ReadUBitVar(r)
 	assert.Equal(uint64(5), u)
 
 	// 1000 1011 1010 1101 1111 0000 0000 1101
@@ -119,7 +118,7 @@ func TestUbitVar(t *testing.T) {
 	//            ^^                           : prefix 01
 	//           ^...............^-^           : msb 0001
 	//              ^---^                      : lsb 0110
-	u = r.ReadUBitVar()
+	u = ReadUBitVar(r)
 	assert.Equal(uint64(0x16), u)
 
 	// 1000 1011 1010 1101 1111 0000 0000 1101
@@ -133,7 +132,7 @@ func TestUbitVar(t *testing.T) {
 	// ^^                                      : prefix 10
 	//           ^-------^                     : msb 1010 1101
 	//   ^---^                                 : lsb 0010
-	u = r.ReadUBitVar()
+	u = ReadUBitVar(r)
 	assert.Equal(uint64(0xad2), u)
 
 	// 1110 1100 0111 0000 1100 0000 0000 0001 1110 0010
@@ -152,14 +151,14 @@ func TestUbitVar(t *testing.T) {
 	//   ^---^                                           : lsb 1011
 	// data bits:
 	// 0010 0000 0001 1110 0000 0111 0000 1011
-	u = r.ReadUBitVar()
+	u = ReadUBitVar(r)
 	assert.Equal(uint64(0x201c070b), u)
 }
 
 func TestVarInt(t *testing.T) {
 	var (
 		assert = assert.New(t)
-		r      *Reader
+		r      Reader
 		u      uint64
 	)
 
@@ -168,7 +167,7 @@ func TestVarInt(t *testing.T) {
 	// 1000 1011 1010 1101 1111 0000 0000 1101
 	//                                ^------^ : data
 	//                               ^         : stop
-	u = r.ReadVarInt()
+	u = ReadVarInt(r)
 	assert.Equal(uint64(0xd), u)
 
 	r = NewBytesReader(badFood)
@@ -181,7 +180,7 @@ func TestVarInt(t *testing.T) {
 	// data bits:
 	// 0000 0110 1111 0000
 	// 0    6    f    0
-	u = r.ReadVarInt()
+	u = ReadVarInt(r)
 	assert.Equal(uint64(0x6f0), u)
 
 	r = NewBytesReader(badFood)
@@ -197,6 +196,6 @@ func TestVarInt(t *testing.T) {
 	// data bits:
 	// 0001 1011 1100 0001 0110 1000 1011
 	// 1    b    c    1    6    8    b
-	u = r.ReadVarInt()
+	u = ReadVarInt(r)
 	assert.Equal(uint64(0x1bc168b), u)
 }

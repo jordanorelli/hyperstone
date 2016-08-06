@@ -2,14 +2,12 @@ package bit
 
 import (
 	"bufio"
-	"bytes"
 	"io"
 )
 
 // Reader allows for the reading and skipping of bits and bytes.
 type Reader interface {
 	ReadBits(uint) uint64
-	DiscardBits(int)
 	ReadByte() byte
 	Read([]byte) int
 	DiscardBytes(int)
@@ -28,5 +26,5 @@ func NewReader(r io.Reader) Reader {
 // NewByteReader creates a bit.Reader for a static slice of bytes. It's just
 // using a bytes.Reader internally.
 func NewBytesReader(b []byte) Reader {
-	return NewReader(bytes.NewReader(b))
+	return &bufReader{src: b}
 }
