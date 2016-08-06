@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"reflect"
+	// "reflect"
 	"runtime/pprof"
 	"strings"
 )
@@ -123,12 +123,15 @@ func main() {
 
 	c := make(chan maybe, 32)
 	p := newParser(r)
+	delete(p.ewl, EBaseGameEvents_GE_SosStartSoundEvent)
+	delete(p.ewl, EDotaUserMessages_DOTA_UM_SpectatorPlayerUnitOrders)
+	delete(p.ewl, EDotaUserMessages_DOTA_UM_SpectatorPlayerClick)
 	go p.run(c)
 	for m := range c {
 		if m.error != nil {
 			fmt.Fprintln(os.Stderr, m.error)
 		} else {
-			fmt.Println(reflect.TypeOf(m.Message))
+			// fmt.Println(reflect.TypeOf(m.Message))
 		}
 	}
 	if p.err != nil {

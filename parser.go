@@ -72,8 +72,13 @@ func (p *parser) emitChildren(pkt *dota.CDemoPacket, c chan maybe) {
 	for {
 		t := entityType(br.ReadUBitVar())
 		s := br.ReadVarInt()
-		b := p.scratch[:s]
-		br.Read(b)
+
+		if p.ewl[t] {
+			br.Read(p.scratch[:s])
+		} else {
+			br.DiscardBytes(int(s))
+			continue
+		}
 
 		switch err := br.Err(); err {
 		case nil:
@@ -85,14 +90,10 @@ func (p *parser) emitChildren(pkt *dota.CDemoPacket, c chan maybe) {
 			return
 		}
 
-		if !p.ewl[t] {
-			continue
-		}
-
-		p.pbuf.SetBuf(b)
+		p.pbuf.SetBuf(p.scratch[:s])
 		e, err := messages.BuildEntity(t)
 		if err != nil {
-			c <- maybe{error: wrap(err, "skipping entity of size %d, type %s", len(b), t)}
+			c <- maybe{error: wrap(err, "skipping entity of size %d, type %s", s, t)}
 			continue
 		}
 		if err := p.pbuf.Unmarshal(e); err != nil {

@@ -49,6 +49,11 @@ func (r *Reader) ReadBits(bits uint) (n uint64) {
 	return
 }
 
+// discards up to bits bits. returns a bool indicating wheter any errors occured.
+func (r *Reader) DiscardBits(n int) {
+	r.ReadBits(uint(n))
+}
+
 // ReadByte reads a single byte, regardless of alignment.
 func (r *Reader) ReadByte() (byte, error) {
 	if r.bits == 0 {
@@ -71,6 +76,17 @@ func (r *Reader) Read(buf []byte) (int, error) {
 		buf[i] = b
 	}
 	return len(buf), nil
+}
+
+// discards N byte of data on the reader or until EOF
+func (r *Reader) DiscardBytes(n int) {
+	for i := 0; i < n; i++ {
+		_, err := r.ReadByte()
+		if err != nil {
+			r.err = err
+			return
+		}
+	}
 }
 
 // ReadUbitVar reads a prefixed uint value. A prefix is 2 bits wide, followed
