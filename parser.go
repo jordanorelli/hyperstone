@@ -70,8 +70,8 @@ func (p *parser) run(out chan maybe) {
 func (p *parser) emitChildren(pkt *dota.CDemoPacket, c chan maybe) {
 	br := bit.NewBytesReader(pkt.GetData())
 	for {
-		t := entityType(br.ReadUBitVar())
-		s := br.ReadVarInt()
+		t := entityType(bit.ReadUBitVar(br))
+		s := bit.ReadVarInt(br)
 
 		if p.ewl[t] {
 			br.Read(p.scratch[:s])

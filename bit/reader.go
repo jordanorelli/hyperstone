@@ -89,6 +89,8 @@ func (r *Reader) DiscardBytes(n int) {
 	}
 }
 
+func (r *Reader) Err() error { return r.err }
+
 // ReadUbitVar reads a prefixed uint value. A prefix is 2 bits wide, followed
 // by the 4 least-significant bits, then a variable number of most-significant
 // bits based on the prefix.
@@ -97,7 +99,7 @@ func (r *Reader) DiscardBytes(n int) {
 // 01 - 8
 // 10 - 12 (why 12? this really baffles me)
 // 11 - 32
-func (r *Reader) ReadUBitVar() uint64 {
+func ReadUBitVar(r *Reader) uint64 {
 	switch b := r.ReadBits(6); b >> 4 {
 	case 0:
 		return b & 0xf
@@ -116,7 +118,7 @@ func (r *Reader) ReadUBitVar() uint64 {
 // representation used by Protobuf. Each byte contributes 7 bits to the value
 // in little-endian order. The most-significant bit of each byte represents a
 // continuation bit.
-func (r *Reader) ReadVarInt() uint64 {
+func ReadVarInt(r *Reader) uint64 {
 	var (
 		x     uint64
 		b     uint64
@@ -134,5 +136,3 @@ func (r *Reader) ReadVarInt() uint64 {
 	}
 	return x
 }
-
-func (r *Reader) Err() error { return r.err }
