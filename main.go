@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	// "reflect"
 	"runtime/pprof"
 	"strings"
 )
@@ -130,11 +129,9 @@ func main() {
 	for m := range c {
 		if m.error != nil {
 			fmt.Fprintln(os.Stderr, m.error)
-		} else {
-			// fmt.Println(reflect.TypeOf(m.Message))
 		}
 	}
 	if p.err != nil {
-		fmt.Println(err)
+		fmt.Printf("parser error: %v\n", p.err)
 	}
 }

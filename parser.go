@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/snappy"
 	"github.com/jordanorelli/hyperstone/bit"
 	"github.com/jordanorelli/hyperstone/dota"
 )
@@ -21,6 +21,8 @@ type parser struct {
 
 	ewl entityWhitelist
 	pwl packetWhitelist
+
+	packets *sync.Pool
 }
 
 func newParser(r io.Reader) *parser {
@@ -30,6 +32,11 @@ func newParser(r io.Reader) *parser {
 		pbuf:    new(proto.Buffer),
 		ewl:     allEntities,
 		pwl:     allPackets,
+		packets: &sync.Pool{
+			New: func() interface{} {
+				return &packet{body: make([]byte, 1<<16)}
+			},
+		},
 	}
 }
 
@@ -57,6 +64,8 @@ func (p *parser) run(out chan maybe) {
 			p.err = wrap(err, "open packet error in run loop")
 			return
 		}
+
+		p.packets.Put(pkt)
 
 		switch m := msg.(type) {
 		case *dota.CDemoPacket:
@@ -202,23 +211,17 @@ func (p *parser) readPacket() (*packet, error) {
 		return p.readPacket()
 	}
 
+	pkt := p.packets.Get().(*packet)
+	pkt.cmd = cmd
+	pkt.tick = int64(tick)
+	pkt.size = int(size)
+	pkt.compressed = compressed
+
 	if size > 0 {
-		buf := make([]byte, int(size))
-		if _, err := io.ReadFull(p.source, buf); err != nil {
+		if _, err := io.ReadFull(p.source, pkt.body[:pkt.size]); err != nil {
 			return nil, wrap(err, "readPacket couldn't read packet body")
 		}
-
-		if compressed {
-			var err error
-			buf, err = snappy.Decode(nil, buf)
-			if err != nil {
-				return nil, wrap(err, "readPacket couldn't snappy decode body")
-			}
-		}
-		// TODO: pool these!
-		return &packet{cmd, int64(tick), buf}, nil
 	}
 
-	// TODO: pool these!
-	return &packet{cmd, int64(tick), nil}, nil
+	return pkt, nil
 }
