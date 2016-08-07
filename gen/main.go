@@ -48,6 +48,24 @@ var (
 		"ETEProtobufIds_TE_EffectDispatchId":          "CMsgTEEffectDispatch",
 		"EDemoCommands_DEM_SignonPacket":              "CDemoPacket",
 	}
+	pooled = map[string]bool{
+		"CDemoPacket":                            true,
+		"CMsgDOTACombatLogEntry":                 true,
+		"CDOTAUserMsg_ParticleManager":           true,
+		"CMsgSosStartSoundEvent":                 true,
+		"CDOTAUserMsg_SpectatorPlayerUnitOrders": true,
+		"CNETMsg_Tick":                           true,
+		"CDOTAUserMsg_SpectatorPlayerClick":      true,
+		"CDOTAUserMsg_TE_UnitAnimationEnd":       true,
+		"CSVCMsg_PacketEntities":                 true,
+		"CDOTAUserMsg_TE_Projectile":             true,
+		"CDOTAUserMsg_TE_UnitAnimation":          true,
+		"CSVCMsg_UpdateStringTable":              true,
+		"CMsgSosSetSoundEventParams":             true,
+		"CDOTAUserMsg_UnitEvent":                 true,
+		"CDOTAUserMsg_TE_ProjectileLoc":          true,
+		"CDOTAUserMsg_OverheadEvent":             true,
+	}
 	// EBaseUserMessages_UM_HandHapticPulse
 	tpl = `package main
 
@@ -77,6 +95,7 @@ var (
 
 import (
 	"fmt"
+	"sync"
 	"github.com/golang/protobuf/proto"
 	"github.com/jordanorelli/hyperstone/dota"
 )
@@ -157,6 +176,21 @@ func (m *messageFactory) BuildEntity(id entityType) (proto.Message, error) {
 	}
 	return fn(), nil
 }
+
+func (m *messageFactory) Return(msg proto.Message) {
+	switch msg.(type) {
+	{{- range $name, $ok := .Pooled }}
+	case *dota.{{$name}}:
+		p_{{$name}}.Put(msg)
+	{{- end}}
+	}
+}
+
+var (
+	{{- range $name, $ok := .Pooled }}
+	p_{{$name}} = &sync.Pool{New: func() interface{} { return new(dota.{{$name}}) }}
+	{{- end }}
+)
 
 type packetWhitelist map[packetType]bool
 type entityWhitelist map[entityType]bool
@@ -249,12 +283,12 @@ var eteEntities = entityWhitelist{
 var messages = messageFactory{
 	packetFactory{
 	{{- range $id, $spec := .Packets }}
-		{{$spec.EnumName}}: func() proto.Message { return new(dota.{{$spec.TypeName}}) },
+		{{$spec.EnumName}}: {{$spec.CreateFn}},
 	{{- end }}
 	},
 	entityFactory{
 	{{- range $id, $spec := .Entities }}
-		{{$spec.EnumName}}: func() proto.Message { return new(dota.{{$spec.TypeName}}) },
+		{{$spec.EnumName}}: {{$spec.CreateFn}},
 	{{- end }}
 	},
 }
@@ -262,9 +296,33 @@ var messages = messageFactory{
 )
 
 type messageSpec struct {
-	EnumType string
-	EnumName string
-	TypeName string
+	EnumType  string
+	EnumName  string
+	EnumValue string
+	TypeName  string
+}
+
+func (m messageSpec) CreateFn() string {
+	if m.Pooled() {
+		return fmt.Sprintf("func() proto.Message { return %s.Get().(*dota.%s) }", m.PoolName(), m.TypeName)
+	}
+	return m.New()
+}
+
+func (m messageSpec) New() string {
+	return fmt.Sprintf("func() proto.Message { return new(dota.%s) }", m.TypeName)
+}
+
+func (m messageSpec) Pooled() bool {
+	return pooled[m.TypeName]
+}
+
+func (m messageSpec) PoolName() string {
+	return fmt.Sprintf("p_%s", m.TypeName)
+}
+
+func (m messageSpec) IsCmd() bool {
+	return m.EnumType == cmdEnumType
 }
 
 type typeMap map[int]messageSpec
@@ -443,9 +501,11 @@ func main() {
 	var ctx = struct {
 		Packets  typeMap
 		Entities typeMap
+		Pooled   map[string]bool
 	}{
 		Packets:  packetTypes,
 		Entities: entityTypes,
+		Pooled:   pooled,
 	}
 
 	t, err := template.New("out.go").Parse(tpl)

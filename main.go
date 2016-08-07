@@ -129,6 +129,8 @@ func main() {
 	for m := range c {
 		if m.error != nil {
 			fmt.Fprintln(os.Stderr, m.error)
+		} else {
+			messages.Return(m.Message)
 		}
 	}
 	if p.err != nil {
