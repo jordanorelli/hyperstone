@@ -4,14 +4,14 @@ import (
 	"io"
 )
 
-type bufReader struct {
+type BufReader struct {
 	src  []byte // source of data
 	n    uint64 // bit buffer
 	bits uint   // number of valid bits in n
 	err  error  // stored error
 }
 
-func (r *bufReader) ReadBits(bits uint) (n uint64) {
+func (r *BufReader) ReadBits(bits uint) (n uint64) {
 	for bits > r.bits {
 		if len(r.src) == 0 {
 			r.err = io.EOF
@@ -27,7 +27,7 @@ func (r *bufReader) ReadBits(bits uint) (n uint64) {
 	return
 }
 
-func (r *bufReader) ReadByte() byte {
+func (r *BufReader) ReadByte() byte {
 	if r.bits == 0 {
 		if len(r.src) == 0 {
 			r.err = io.EOF
@@ -40,7 +40,7 @@ func (r *bufReader) ReadByte() byte {
 	return byte(r.ReadBits(8))
 }
 
-func (r *bufReader) Read(buf []byte) int {
+func (r *BufReader) Read(buf []byte) int {
 	if r.bits == 0 {
 		if len(r.src) < len(buf) {
 			r.err = io.EOF
@@ -61,7 +61,7 @@ func (r *bufReader) Read(buf []byte) int {
 	return len(buf)
 }
 
-func (r *bufReader) DiscardBytes(n int) {
+func (r *BufReader) DiscardBytes(n int) {
 	if r.bits == 0 {
 		if len(r.src) < n {
 			r.err = io.EOF
@@ -85,4 +85,11 @@ func (r *bufReader) DiscardBytes(n int) {
 	r.src = r.src[n:]
 }
 
-func (r *bufReader) Err() error { return r.err }
+func (r *BufReader) SetSource(b []byte) {
+	r.src = b
+	r.bits = 0
+	r.err = nil
+	r.n = 0
+}
+
+func (r *BufReader) Err() error { return r.err }

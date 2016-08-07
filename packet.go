@@ -2,9 +2,14 @@ package main
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
+)
+
+var (
+	p_decode_bufs = &sync.Pool{New: func() interface{} { return make([]byte, 1<<18) }}
 )
 
 // packet represents the top-level envelope in the dota replay format. All
@@ -31,7 +36,9 @@ func (p *packet) Open(m *messageFactory, pbuf *proto.Buffer) (proto.Message, err
 	}
 
 	if p.compressed {
-		buf, err := snappy.Decode(nil, p.body[:p.size])
+		buf := p_decode_bufs.Get().([]byte)
+		defer p_decode_bufs.Put(buf)
+		buf, err := snappy.Decode(buf, p.body[:p.size])
 		if err != nil {
 			return nil, wrap(err, "packet open failed snappy decode")
 		}

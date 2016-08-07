@@ -690,6 +690,8 @@ func (m *messageFactory) BuildEntity(id entityType) (proto.Message, error) {
 
 func (m *messageFactory) Return(msg proto.Message) {
 	switch msg.(type) {
+	case *dota.CDOTAUserMsg_LocationPing:
+		p_CDOTAUserMsg_LocationPing.Put(msg)
 	case *dota.CDOTAUserMsg_OverheadEvent:
 		p_CDOTAUserMsg_OverheadEvent.Put(msg)
 	case *dota.CDOTAUserMsg_ParticleManager:
@@ -698,6 +700,8 @@ func (m *messageFactory) Return(msg proto.Message) {
 		p_CDOTAUserMsg_SpectatorPlayerClick.Put(msg)
 	case *dota.CDOTAUserMsg_SpectatorPlayerUnitOrders:
 		p_CDOTAUserMsg_SpectatorPlayerUnitOrders.Put(msg)
+	case *dota.CDOTAUserMsg_TE_DotaBloodImpact:
+		p_CDOTAUserMsg_TE_DotaBloodImpact.Put(msg)
 	case *dota.CDOTAUserMsg_TE_Projectile:
 		p_CDOTAUserMsg_TE_Projectile.Put(msg)
 	case *dota.CDOTAUserMsg_TE_ProjectileLoc:
@@ -726,10 +730,12 @@ func (m *messageFactory) Return(msg proto.Message) {
 }
 
 var (
+	p_CDOTAUserMsg_LocationPing              = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_LocationPing) }}
 	p_CDOTAUserMsg_OverheadEvent             = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_OverheadEvent) }}
 	p_CDOTAUserMsg_ParticleManager           = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_ParticleManager) }}
 	p_CDOTAUserMsg_SpectatorPlayerClick      = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_SpectatorPlayerClick) }}
 	p_CDOTAUserMsg_SpectatorPlayerUnitOrders = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_SpectatorPlayerUnitOrders) }}
+	p_CDOTAUserMsg_TE_DotaBloodImpact        = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_TE_DotaBloodImpact) }}
 	p_CDOTAUserMsg_TE_Projectile             = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_TE_Projectile) }}
 	p_CDOTAUserMsg_TE_ProjectileLoc          = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_TE_ProjectileLoc) }}
 	p_CDOTAUserMsg_TE_UnitAnimation          = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_TE_UnitAnimation) }}
@@ -1291,7 +1297,7 @@ var messages = messageFactory{
 		EDotaUserMessages_DOTA_UM_GlobalLightColor:             func() proto.Message { return new(dota.CDOTAUserMsg_GlobalLightColor) },
 		EDotaUserMessages_DOTA_UM_GlobalLightDirection:         func() proto.Message { return new(dota.CDOTAUserMsg_GlobalLightDirection) },
 		EDotaUserMessages_DOTA_UM_InvalidCommand:               func() proto.Message { return new(dota.CDOTAUserMsg_InvalidCommand) },
-		EDotaUserMessages_DOTA_UM_LocationPing:                 func() proto.Message { return new(dota.CDOTAUserMsg_LocationPing) },
+		EDotaUserMessages_DOTA_UM_LocationPing:                 func() proto.Message { return p_CDOTAUserMsg_LocationPing.Get().(*dota.CDOTAUserMsg_LocationPing) },
 		EDotaUserMessages_DOTA_UM_MapLine:                      func() proto.Message { return new(dota.CDOTAUserMsg_MapLine) },
 		EDotaUserMessages_DOTA_UM_MiniKillCamInfo:              func() proto.Message { return new(dota.CDOTAUserMsg_MiniKillCamInfo) },
 		EDotaUserMessages_DOTA_UM_MinimapDebugPoint:            func() proto.Message { return new(dota.CDOTAUserMsg_MinimapDebugPoint) },
@@ -1337,7 +1343,9 @@ var messages = messageFactory{
 		EDotaUserMessages_DOTA_UM_TE_ProjectileLoc: func() proto.Message {
 			return p_CDOTAUserMsg_TE_ProjectileLoc.Get().(*dota.CDOTAUserMsg_TE_ProjectileLoc)
 		},
-		EDotaUserMessages_DOTA_UM_TE_DotaBloodImpact: func() proto.Message { return new(dota.CDOTAUserMsg_TE_DotaBloodImpact) },
+		EDotaUserMessages_DOTA_UM_TE_DotaBloodImpact: func() proto.Message {
+			return p_CDOTAUserMsg_TE_DotaBloodImpact.Get().(*dota.CDOTAUserMsg_TE_DotaBloodImpact)
+		},
 		EDotaUserMessages_DOTA_UM_TE_UnitAnimation: func() proto.Message {
 			return p_CDOTAUserMsg_TE_UnitAnimation.Get().(*dota.CDOTAUserMsg_TE_UnitAnimation)
 		},

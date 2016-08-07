@@ -15,16 +15,16 @@ type Reader interface {
 }
 
 // NewReader creates a new bit.Reader for any arbitrary reader.
-func NewReader(r io.Reader) Reader {
+func NewReader(r io.Reader) *StreamReader {
 	br, ok := r.(io.ByteReader)
 	if !ok {
 		br = bufio.NewReader(r)
 	}
-	return &streamReader{src: br}
+	return &StreamReader{src: br}
 }
 
 // NewByteReader creates a bit.Reader for a static slice of bytes. It's just
 // using a bytes.Reader internally.
-func NewBytesReader(b []byte) Reader {
-	return &bufReader{src: b}
+func NewBytesReader(b []byte) *BufReader {
+	return &BufReader{src: b}
 }

@@ -7,7 +7,7 @@ import (
 // bit.Reader allows for bit-level reading of arbitrary source data. This is
 // based on the bit reader found in the standard library's bzip2 package.
 // https://golang.org/src/compress/bzip2/bit_reader.go
-type streamReader struct {
+type StreamReader struct {
 	src  io.ByteReader // source of data
 	n    uint64        // bit buffer
 	bits uint          // number of valid bits in n
@@ -16,7 +16,7 @@ type streamReader struct {
 
 // ReadBits reads the given number of bits and returns them in the
 // least-significant part of a uint64.
-func (r *streamReader) ReadBits(bits uint) (n uint64) {
+func (r *StreamReader) ReadBits(bits uint) (n uint64) {
 	if r.err != nil {
 		return 0
 	}
@@ -37,7 +37,7 @@ func (r *streamReader) ReadBits(bits uint) (n uint64) {
 }
 
 // ReadByte reads a single byte, regardless of alignment.
-func (r *streamReader) ReadByte() byte {
+func (r *StreamReader) ReadByte() byte {
 	if r.bits == 0 {
 		b, err := r.src.ReadByte()
 		if err != nil {
@@ -50,7 +50,7 @@ func (r *streamReader) ReadByte() byte {
 }
 
 // Read reads like an io.Reader, taking care of alignment internally.
-func (r *streamReader) Read(buf []byte) int {
+func (r *StreamReader) Read(buf []byte) int {
 	for i := 0; i < len(buf); i++ {
 		b := r.ReadByte()
 		if r.err != nil {
@@ -62,10 +62,10 @@ func (r *streamReader) Read(buf []byte) int {
 }
 
 // discards N byte of data on the reader or until EOF
-func (r *streamReader) DiscardBytes(n int) {
+func (r *StreamReader) DiscardBytes(n int) {
 	for i := 0; i < n; i++ {
 		r.ReadByte()
 	}
 }
 
-func (r *streamReader) Err() error { return r.err }
+func (r *StreamReader) Err() error { return r.err }

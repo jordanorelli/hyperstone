@@ -23,6 +23,8 @@ type parser struct {
 	pwl packetWhitelist
 
 	packets *sync.Pool
+
+	br *bit.BufReader
 }
 
 func newParser(r io.Reader) *parser {
@@ -37,6 +39,7 @@ func newParser(r io.Reader) *parser {
 				return &packet{body: make([]byte, 1<<16)}
 			},
 		},
+		br: new(bit.BufReader),
 	}
 }
 
@@ -77,19 +80,19 @@ func (p *parser) run(out chan maybe) {
 }
 
 func (p *parser) emitChildren(pkt *dota.CDemoPacket, c chan maybe) {
-	br := bit.NewBytesReader(pkt.GetData())
+	p.br.SetSource(pkt.GetData())
 	for {
-		t := entityType(bit.ReadUBitVar(br))
-		s := bit.ReadVarInt(br)
+		t := entityType(bit.ReadUBitVar(p.br))
+		s := bit.ReadVarInt(p.br)
 
 		if p.ewl[t] {
-			br.Read(p.scratch[:s])
+			p.br.Read(p.scratch[:s])
 		} else {
-			br.DiscardBytes(int(s))
+			p.br.DiscardBytes(int(s))
 			continue
 		}
 
-		switch err := br.Err(); err {
+		switch err := p.br.Err(); err {
 		case nil:
 			break
 		case io.EOF:

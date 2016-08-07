@@ -65,6 +65,8 @@ var (
 		"CDOTAUserMsg_UnitEvent":                 true,
 		"CDOTAUserMsg_TE_ProjectileLoc":          true,
 		"CDOTAUserMsg_OverheadEvent":             true,
+		"CDOTAUserMsg_LocationPing":              true,
+		"CDOTAUserMsg_TE_DotaBloodImpact":        true,
 	}
 	// EBaseUserMessages_UM_HandHapticPulse
 	tpl = `package main
