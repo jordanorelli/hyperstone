@@ -67,6 +67,8 @@ var (
 		"CDOTAUserMsg_OverheadEvent":             true,
 		"CDOTAUserMsg_LocationPing":              true,
 		"CDOTAUserMsg_TE_DotaBloodImpact":        true,
+		"CDOTAUserMsg_SharedCooldown":            true,
+		"CDOTAUserMsg_ChatEvent":                 true,
 	}
 	// EBaseUserMessages_UM_HandHapticPulse
 	tpl = `package main

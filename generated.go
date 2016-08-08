@@ -130,6 +130,7 @@ const (
 	EBaseUserMessages_UM_CloseCaptionPlaceholder           entityType = 142
 	EBaseUserMessages_UM_CameraTransition                  entityType = 143
 	EBaseUserMessages_UM_AudioParameter                    entityType = 144
+	EBaseGameEvents_GE_VDebugGameSessionIDEvent            entityType = 200
 	EBaseGameEvents_GE_PlaceDecalEvent                     entityType = 201
 	EBaseGameEvents_GE_ClearWorldDecalsEvent               entityType = 202
 	EBaseGameEvents_GE_ClearEntityDecalsEvent              entityType = 203
@@ -433,6 +434,8 @@ func (t entityType) String() string {
 		return "EBaseUserMessages_UM_CameraTransition"
 	case EBaseUserMessages_UM_AudioParameter:
 		return "EBaseUserMessages_UM_AudioParameter"
+	case EBaseGameEvents_GE_VDebugGameSessionIDEvent:
+		return "EBaseGameEvents_GE_VDebugGameSessionIDEvent"
 	case EBaseGameEvents_GE_PlaceDecalEvent:
 		return "EBaseGameEvents_GE_PlaceDecalEvent"
 	case EBaseGameEvents_GE_ClearWorldDecalsEvent:
@@ -690,12 +693,16 @@ func (m *messageFactory) BuildEntity(id entityType) (proto.Message, error) {
 
 func (m *messageFactory) Return(msg proto.Message) {
 	switch msg.(type) {
+	case *dota.CDOTAUserMsg_ChatEvent:
+		p_CDOTAUserMsg_ChatEvent.Put(msg)
 	case *dota.CDOTAUserMsg_LocationPing:
 		p_CDOTAUserMsg_LocationPing.Put(msg)
 	case *dota.CDOTAUserMsg_OverheadEvent:
 		p_CDOTAUserMsg_OverheadEvent.Put(msg)
 	case *dota.CDOTAUserMsg_ParticleManager:
 		p_CDOTAUserMsg_ParticleManager.Put(msg)
+	case *dota.CDOTAUserMsg_SharedCooldown:
+		p_CDOTAUserMsg_SharedCooldown.Put(msg)
 	case *dota.CDOTAUserMsg_SpectatorPlayerClick:
 		p_CDOTAUserMsg_SpectatorPlayerClick.Put(msg)
 	case *dota.CDOTAUserMsg_SpectatorPlayerUnitOrders:
@@ -730,9 +737,11 @@ func (m *messageFactory) Return(msg proto.Message) {
 }
 
 var (
+	p_CDOTAUserMsg_ChatEvent                 = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_ChatEvent) }}
 	p_CDOTAUserMsg_LocationPing              = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_LocationPing) }}
 	p_CDOTAUserMsg_OverheadEvent             = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_OverheadEvent) }}
 	p_CDOTAUserMsg_ParticleManager           = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_ParticleManager) }}
+	p_CDOTAUserMsg_SharedCooldown            = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_SharedCooldown) }}
 	p_CDOTAUserMsg_SpectatorPlayerClick      = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_SpectatorPlayerClick) }}
 	p_CDOTAUserMsg_SpectatorPlayerUnitOrders = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_SpectatorPlayerUnitOrders) }}
 	p_CDOTAUserMsg_TE_DotaBloodImpact        = &sync.Pool{New: func() interface{} { return new(dota.CDOTAUserMsg_TE_DotaBloodImpact) }}
@@ -851,6 +860,7 @@ var allEntities = entityWhitelist{
 	EBaseUserMessages_UM_CloseCaptionPlaceholder:           true,
 	EBaseUserMessages_UM_CameraTransition:                  true,
 	EBaseUserMessages_UM_AudioParameter:                    true,
+	EBaseGameEvents_GE_VDebugGameSessionIDEvent:            true,
 	EBaseGameEvents_GE_PlaceDecalEvent:                     true,
 	EBaseGameEvents_GE_ClearWorldDecalsEvent:               true,
 	EBaseGameEvents_GE_ClearEntityDecalsEvent:              true,
@@ -1064,6 +1074,7 @@ var entityEntities = entityWhitelist{
 }
 
 var gameEntities = entityWhitelist{
+	EBaseGameEvents_GE_VDebugGameSessionIDEvent:            true,
 	EBaseGameEvents_GE_PlaceDecalEvent:                     true,
 	EBaseGameEvents_GE_ClearWorldDecalsEvent:               true,
 	EBaseGameEvents_GE_ClearEntityDecalsEvent:              true,
@@ -1274,6 +1285,7 @@ var messages = messageFactory{
 		EBaseUserMessages_UM_CloseCaptionPlaceholder:           func() proto.Message { return new(dota.CUserMessageCloseCaptionPlaceholder) },
 		EBaseUserMessages_UM_CameraTransition:                  func() proto.Message { return new(dota.CUserMessageCameraTransition) },
 		EBaseUserMessages_UM_AudioParameter:                    func() proto.Message { return new(dota.CUserMessageAudioParameter) },
+		EBaseGameEvents_GE_VDebugGameSessionIDEvent:            func() proto.Message { return new(dota.CMsgVDebugGameSessionIDEvent) },
 		EBaseGameEvents_GE_PlaceDecalEvent:                     func() proto.Message { return new(dota.CMsgPlaceDecalEvent) },
 		EBaseGameEvents_GE_ClearWorldDecalsEvent:               func() proto.Message { return new(dota.CMsgClearWorldDecalsEvent) },
 		EBaseGameEvents_GE_ClearEntityDecalsEvent:              func() proto.Message { return new(dota.CMsgClearEntityDecalsEvent) },
@@ -1288,7 +1300,7 @@ var messages = messageFactory{
 		EBaseGameEvents_GE_SosStopSoundEventHash:               func() proto.Message { return new(dota.CMsgSosStopSoundEventHash) },
 		ETEProtobufIds_TE_EffectDispatchId:                     func() proto.Message { return new(dota.CMsgTEEffectDispatch) },
 		EDotaUserMessages_DOTA_UM_AIDebugLine:                  func() proto.Message { return new(dota.CDOTAUserMsg_AIDebugLine) },
-		EDotaUserMessages_DOTA_UM_ChatEvent:                    func() proto.Message { return new(dota.CDOTAUserMsg_ChatEvent) },
+		EDotaUserMessages_DOTA_UM_ChatEvent:                    func() proto.Message { return p_CDOTAUserMsg_ChatEvent.Get().(*dota.CDOTAUserMsg_ChatEvent) },
 		EDotaUserMessages_DOTA_UM_CombatHeroPositions:          func() proto.Message { return new(dota.CDOTAUserMsg_CombatHeroPositions) },
 		EDotaUserMessages_DOTA_UM_CombatLogShowDeath:           func() proto.Message { return new(dota.CDOTAUserMsg_CombatLogShowDeath) },
 		EDotaUserMessages_DOTA_UM_CreateLinearProjectile:       func() proto.Message { return new(dota.CDOTAUserMsg_CreateLinearProjectile) },
@@ -1305,7 +1317,7 @@ var messages = messageFactory{
 		EDotaUserMessages_DOTA_UM_NevermoreRequiem:             func() proto.Message { return new(dota.CDOTAUserMsg_NevermoreRequiem) },
 		EDotaUserMessages_DOTA_UM_OverheadEvent:                func() proto.Message { return p_CDOTAUserMsg_OverheadEvent.Get().(*dota.CDOTAUserMsg_OverheadEvent) },
 		EDotaUserMessages_DOTA_UM_SetNextAutobuyItem:           func() proto.Message { return new(dota.CDOTAUserMsg_SetNextAutobuyItem) },
-		EDotaUserMessages_DOTA_UM_SharedCooldown:               func() proto.Message { return new(dota.CDOTAUserMsg_SharedCooldown) },
+		EDotaUserMessages_DOTA_UM_SharedCooldown:               func() proto.Message { return p_CDOTAUserMsg_SharedCooldown.Get().(*dota.CDOTAUserMsg_SharedCooldown) },
 		EDotaUserMessages_DOTA_UM_SpectatorPlayerClick: func() proto.Message {
 			return p_CDOTAUserMsg_SpectatorPlayerClick.Get().(*dota.CDOTAUserMsg_SpectatorPlayerClick)
 		},
