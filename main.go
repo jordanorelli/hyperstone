@@ -8,9 +8,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+    "bytes"
 	"os"
+	"reflect"
 	"runtime/pprof"
 	"strings"
+
+	"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -98,6 +102,53 @@ func cpuprofile(dest string) func() {
 	}
 }
 
+func check(msg proto.Message) {}
+
+func printTypes(m proto.Message) {
+	fmt.Println(reflect.TypeOf(m))
+}
+
+func prettyVals(m proto.Message) {
+    v := reflect.ValueOf(m)
+    if v.Kind() == reflect.Ptr {
+        v = v.Elem()
+    }
+
+	if v.Kind() != reflect.Struct {
+		fmt.Fprintf(os.Stderr, "don't know how to pretty-print value of type %v", reflect.TypeOf(m))
+		return
+	}
+
+    var buf bytes.Buffer
+    fmt.Fprintf(&buf, "%s ", v.Type())
+
+    for fn := 0; fn < v.NumField(); fn++ {
+        field := v.Type().Field(fn)
+        if field.Name == "XXX_unrecognized" {
+            continue
+        }
+        fv := v.Field(fn)
+        if fv.Kind() == reflect.Ptr {
+            if fv.IsNil() {
+                fmt.Fprintf(&buf, "%s: nil ", field.Name)
+                continue
+            }
+            fv = fv.Elem()
+        }
+        switch fv.Kind() {
+        case reflect.String:
+            fmt.Fprintf(&buf, "%s: %q ", field.Name, fv.String())
+        case reflect.Int32:
+            fmt.Fprintf(&buf, "%s: %d ", field.Name, fv.Int())
+        case reflect.Bool:
+            fmt.Fprintf(&buf, "%s: %t ", field.Name, fv.Bool())
+        default:
+            fmt.Fprintf(&buf, "%s: %s ", field.Name, fv.Type())
+        }
+    }
+    fmt.Printf("{%s}\n", buf.String())
+}
+
 func main() {
 	var opts options
 	flag.BoolVar(&opts.b, "b", false, "input is expected to be bzip-compressed")
@@ -106,6 +157,18 @@ func main() {
 	flag.StringVar(&opts.memprofile, "memprofile", "", "memory profile destination")
 	flag.StringVar(&opts.cpuprofile, "cpuprofile", "", "cpu profile destination")
 	flag.Parse()
+
+	var handle func(proto.Message)
+	switch flag.Arg(0) {
+	case "":
+		handle = check
+	case "types":
+		handle = printTypes
+	case "pretty":
+		handle = prettyVals
+	default:
+		bail(1, "no such action: %s", flag.Arg(0))
+	}
 
 	if opts.memprofile != "" {
 		defer memprofile(opts.memprofile)
@@ -125,11 +188,14 @@ func main() {
 	delete(p.ewl, EBaseGameEvents_GE_SosStartSoundEvent)
 	delete(p.ewl, EDotaUserMessages_DOTA_UM_SpectatorPlayerUnitOrders)
 	delete(p.ewl, EDotaUserMessages_DOTA_UM_SpectatorPlayerClick)
+	delete(p.ewl, EDotaUserMessages_DOTA_UM_TE_UnitAnimation)
+	delete(p.ewl, EDotaUserMessages_DOTA_UM_TE_UnitAnimationEnd)
 	go p.run(c)
 	for m := range c {
 		if m.error != nil {
 			fmt.Fprintln(os.Stderr, m.error)
 		} else {
+			handle(m.Message)
 			messages.Return(m.Message)
 		}
 	}
