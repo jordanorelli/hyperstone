@@ -40,50 +40,52 @@ func newStringTables() *stringTables {
 }
 
 type stringTable struct {
-    entries []stringTableEntry
+	entries  []stringTableEntry
+	byteSize int
+	bitSize  int // this is in the protobuf message but I don't know what it does.
 }
 
 func (s stringTable) String() string {
-    return fmt.Sprintf("{%s}", s.entries)
+	return fmt.Sprintf("{%s}", s.entries)
 }
 
-func (t *stringTable) create(br *bit.BufReader, entries, byteSize, bitSize int) {
-    t.entries = make([]stringTableEntry, entries)
-	idx := -1
-	for i, base := 0, uint64(0); i < entries; i++ {
+func (t *stringTable) create(br *bit.BufReader, entries int) {
+	t.entries = make([]stringTableEntry, entries)
+	var (
+		base  uint64
+		entry *stringTableEntry
+	)
+
+	for i := range t.entries {
+		entry = &t.entries[i]
 		if i > 32 {
 			base++
 		}
 
-		// continue flag
-		if bit.ReadBool(br) {
-			idx++
-		} else {
-			// in practice, the one replay I'm using never hits this branch, so
-			// I do not know if it works. The base referenced from above might
-			// be wrong in this branch.
-			idx = int(bit.ReadVarInt(br))
+		// sequential index flag should always be true in create
+		if !bit.ReadBool(br) {
+			panic("weird")
 		}
 
 		// key flag
 		if bit.ReadBool(br) {
 			// backreading flag
 			if bit.ReadBool(br) {
-				t.entries[idx].key = t.entries[base+br.ReadBits(5)].key[:br.ReadBits(5)] + bit.ReadString(br)
+				entry.key = t.entries[base+br.ReadBits(5)].key[:br.ReadBits(5)] + bit.ReadString(br)
 			} else {
-				t.entries[idx].key = bit.ReadString(br)
+				entry.key = bit.ReadString(br)
 			}
 		}
 
 		// value flag
 		if bit.ReadBool(br) {
-			if byteSize != -1 {
-				t.entries[idx].value = make([]byte, byteSize)
-				br.Read(t.entries[idx].value)
+			if t.byteSize != 0 {
+				entry.value = make([]byte, t.byteSize)
+				br.Read(entry.value)
 			} else {
 				size, _ := br.ReadBits(14), br.ReadBits(3)
-				t.entries[idx].value = make([]byte, size)
-				br.Read(t.entries[idx].value)
+				entry.value = make([]byte, size)
+				br.Read(entry.value)
 			}
 		}
 	}
@@ -122,7 +124,11 @@ func (s *stringTables) handle(m proto.Message) {
 
 func (s *stringTables) handleCreate(m *dota.CSVCMsg_CreateStringTable) {
 	fmt.Printf("create %s\n", m.GetName())
-    s.tables = append(s.tables, stringTable{})
+	if m.GetUserDataFixedSize() {
+		s.tables = append(s.tables, stringTable{byteSize: int(m.GetUserDataSize()), bitSize: int(m.GetUserDataSizeBits())})
+	} else {
+		s.tables = append(s.tables, stringTable{})
+	}
 	s.idx[m.GetName()] = &s.tables[len(s.tables)-1]
 	table := &s.tables[len(s.tables)-1]
 
@@ -147,12 +153,8 @@ func (s *stringTables) handleCreate(m *dota.CSVCMsg_CreateStringTable) {
 	}
 
 	s.br.SetSource(sd)
-	if m.GetUserDataFixedSize() {
-		table.create(s.br, int(m.GetNumEntries()), int(m.GetUserDataSize()), int(m.GetUserDataSizeBits()))
-	} else {
-		table.create(s.br, int(m.GetNumEntries()), -1, -1)
-	}
-    fmt.Println(table)
+	table.create(s.br, int(m.GetNumEntries()))
+	fmt.Println(table)
 }
 
 // type CSVCMsg_UpdateStringTable struct {
@@ -162,10 +164,10 @@ func (s *stringTables) handleCreate(m *dota.CSVCMsg_CreateStringTable) {
 // }
 
 func (s *stringTables) handleUpdate(m *dota.CSVCMsg_UpdateStringTable) {
-    // hazard
-    table := s.tables[m.GetTableId()]
-    s.br.SetSource(m.GetStringData())
-    table.update(s.br, int(m.GetNumChangedEntries()))
+	// hazard
+	table := s.tables[m.GetTableId()]
+	s.br.SetSource(m.GetStringData())
+	table.update(s.br, int(m.GetNumChangedEntries()))
 }
 
 func (t *stringTable) update(br *bit.BufReader, changed int) {
