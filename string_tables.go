@@ -39,11 +39,18 @@ func newStringTables() *stringTables {
 	}
 }
 
-type stringTable []stringTableEntry
+type stringTable struct {
+    entries []stringTableEntry
+}
 
-func (t stringTable) create(br *bit.BufReader, byteSize, bitSize int) {
+func (s stringTable) String() string {
+    return fmt.Sprintf("{%s}", s.entries)
+}
+
+func (t *stringTable) create(br *bit.BufReader, entries, byteSize, bitSize int) {
+    t.entries = make([]stringTableEntry, entries)
 	idx := -1
-	for i, base := 0, uint64(0); i < len(t); i++ {
+	for i, base := 0, uint64(0); i < entries; i++ {
 		if i > 32 {
 			base++
 		}
@@ -62,21 +69,21 @@ func (t stringTable) create(br *bit.BufReader, byteSize, bitSize int) {
 		if bit.ReadBool(br) {
 			// backreading flag
 			if bit.ReadBool(br) {
-				t[idx].key = t[base+br.ReadBits(5)].key[:br.ReadBits(5)] + bit.ReadString(br)
+				t.entries[idx].key = t.entries[base+br.ReadBits(5)].key[:br.ReadBits(5)] + bit.ReadString(br)
 			} else {
-				t[idx].key = bit.ReadString(br)
+				t.entries[idx].key = bit.ReadString(br)
 			}
 		}
 
 		// value flag
 		if bit.ReadBool(br) {
 			if byteSize != -1 {
-				t[idx].value = make([]byte, byteSize)
-				br.Read(t[idx].value)
+				t.entries[idx].value = make([]byte, byteSize)
+				br.Read(t.entries[idx].value)
 			} else {
 				size, _ := br.ReadBits(14), br.ReadBits(3)
-				t[idx].value = make([]byte, size)
-				br.Read(t[idx].value)
+				t.entries[idx].value = make([]byte, size)
+				br.Read(t.entries[idx].value)
 			}
 		}
 	}
@@ -105,6 +112,7 @@ func (s *stringTables) handle(m proto.Message) {
 		fmt.Println(s)
 	case *dota.CSVCMsg_UpdateStringTable:
 		// prettyPrint(m)
+		// s.handleUpdate(v)
 	case *dota.CSVCMsg_ClearAllStringTables:
 		// prettyPrint(m)
 	case *dota.CDemoStringTables:
@@ -112,21 +120,9 @@ func (s *stringTables) handle(m proto.Message) {
 	}
 }
 
-// type CSVCMsg_CreateStringTable struct {
-// 	Name              *string
-// 	NumEntries        *int32
-// 	UserDataFixedSize *bool
-// 	UserDataSize      *int32
-// 	UserDataSizeBits  *int32
-// 	Flags             *int32
-// 	StringData        []byte
-// 	UncompressedSize  *int32
-// 	DataCompressed    *bool
-// }
-
 func (s *stringTables) handleCreate(m *dota.CSVCMsg_CreateStringTable) {
 	fmt.Printf("create %s\n", m.GetName())
-	s.tables = append(s.tables, make(stringTable, m.GetNumEntries()))
+    s.tables = append(s.tables, stringTable{})
 	s.idx[m.GetName()] = &s.tables[len(s.tables)-1]
 	table := &s.tables[len(s.tables)-1]
 
@@ -152,8 +148,26 @@ func (s *stringTables) handleCreate(m *dota.CSVCMsg_CreateStringTable) {
 
 	s.br.SetSource(sd)
 	if m.GetUserDataFixedSize() {
-		table.create(s.br, int(m.GetUserDataSize()), int(m.GetUserDataSizeBits()))
+		table.create(s.br, int(m.GetNumEntries()), int(m.GetUserDataSize()), int(m.GetUserDataSizeBits()))
 	} else {
-		table.create(s.br, -1, -1)
+		table.create(s.br, int(m.GetNumEntries()), -1, -1)
 	}
+    fmt.Println(table)
+}
+
+// type CSVCMsg_UpdateStringTable struct {
+// 	TableId           *int32
+// 	NumChangedEntries *int32
+// 	StringData        []byte
+// }
+
+func (s *stringTables) handleUpdate(m *dota.CSVCMsg_UpdateStringTable) {
+    // hazard
+    table := s.tables[m.GetTableId()]
+    s.br.SetSource(m.GetStringData())
+    table.update(s.br, int(m.GetNumChangedEntries()))
+}
+
+func (t *stringTable) update(br *bit.BufReader, changed int) {
+
 }
