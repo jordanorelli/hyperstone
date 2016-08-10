@@ -1,5 +1,9 @@
 package bit
 
+import (
+	"bytes"
+)
+
 // ReadUbitVar reads a prefixed uint value. A prefix is 2 bits wide, followed
 // by the 4 least-significant bits, then a variable number of most-significant
 // bits based on the prefix.
@@ -44,4 +48,17 @@ func ReadVarInt(r Reader) uint64 {
 		}
 	}
 	return x
+}
+
+func ReadBool(r Reader) bool {
+	return r.ReadBits(1) != 0
+}
+
+// reads a null-terminated string
+func ReadString(r Reader) string {
+	var buf bytes.Buffer
+	for b := r.ReadByte(); b != 0; b = r.ReadByte() {
+		buf.WriteByte(b)
+	}
+	return buf.String()
 }
