@@ -19,9 +19,9 @@ func (r *intRing) add(i int) {
 	if !r.full && r.next == 0 {
 		r.full = true
 	}
-    if r.full {
-        r.base = r.incr(r.base)
-    }
+	if r.full {
+		r.base = r.incr(r.base)
+	}
 }
 
 func (r *intRing) incr(i int) int {
@@ -32,15 +32,15 @@ func (r *intRing) incr(i int) int {
 }
 
 func (r *intRing) at(i int) int {
-    idx := r.base + i
-    for idx >= len(r.items) {
-        idx -= len(r.items)
-    }
-    return r.items[idx]
+	idx := r.base + i
+	for idx >= len(r.items) {
+		idx -= len(r.items)
+	}
+	return r.items[idx]
 }
 
 func (r *intRing) clear() {
-    r.next = 0
-    r.full = false
-    r.base = 0
+	r.next = 0
+	r.full = false
+	r.base = 0
 }

@@ -186,7 +186,7 @@ func (t *stringTable) update(br *bit.BufReader, changed int) {
 		}
 
 		entry = &t.entries[idx]
-        fmt.Printf("%s -> ", entry)
+		fmt.Printf("%s -> ", entry)
 
 		// key flag
 		if bit.ReadBool(br) {
@@ -195,31 +195,31 @@ func (t *stringTable) update(br *bit.BufReader, changed int) {
 				prev, pLen := h.at(int(br.ReadBits(5))), int(br.ReadBits(5))
 				if prev < len(t.entries) {
 					prevEntry := &t.entries[prev]
-                    entry.key = prevEntry.key[:pLen] + bit.ReadString(br)
+					entry.key = prevEntry.key[:pLen] + bit.ReadString(br)
 				} else {
 					panic("backread error")
 				}
 			} else {
-                entry.key = bit.ReadString(br)
+				entry.key = bit.ReadString(br)
 			}
 		}
 
 		// value flag
 		if bit.ReadBool(br) {
 			if t.byteSize != 0 {
-                if entry.value == nil {
-                    entry.value = make([]byte, t.byteSize)
-                }
+				if entry.value == nil {
+					entry.value = make([]byte, t.byteSize)
+				}
 			} else {
 				size, _ := int(br.ReadBits(14)), br.ReadBits(3)
-                if len(entry.value) < size {
-                    entry.value = make([]byte, size)
-                } else {
-                    entry.value = entry.value[:size]
-                }
+				if len(entry.value) < size {
+					entry.value = make([]byte, size)
+				} else {
+					entry.value = entry.value[:size]
+				}
 			}
-            br.Read(entry.value)
+			br.Read(entry.value)
 		}
-        fmt.Printf("%s\n", entry)
+		fmt.Printf("%s\n", entry)
 	}
 }
