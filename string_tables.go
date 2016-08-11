@@ -40,13 +40,14 @@ func newStringTables() *stringTables {
 }
 
 type stringTable struct {
+	name     string
 	entries  []stringTableEntry
 	byteSize int
 	bitSize  int // this is in the protobuf message but I don't know what it does.
 }
 
 func (s stringTable) String() string {
-	return fmt.Sprintf("{%s}", s.entries)
+	return fmt.Sprintf("{%s %s}", s.name, s.entries)
 }
 
 func (t *stringTable) create(br *bit.BufReader, entries int) {
@@ -111,10 +112,10 @@ func (s *stringTables) handle(m proto.Message) {
 	case *dota.CSVCMsg_CreateStringTable:
 		prettyPrint(m)
 		s.handleCreate(v)
-		fmt.Println(s)
+		// fmt.Println(s)
 	case *dota.CSVCMsg_UpdateStringTable:
-		// prettyPrint(m)
-		// s.handleUpdate(v)
+		prettyPrint(m)
+		s.handleUpdate(v)
 	case *dota.CSVCMsg_ClearAllStringTables:
 		// prettyPrint(m)
 	case *dota.CDemoStringTables:
@@ -125,9 +126,9 @@ func (s *stringTables) handle(m proto.Message) {
 func (s *stringTables) handleCreate(m *dota.CSVCMsg_CreateStringTable) {
 	fmt.Printf("create %s\n", m.GetName())
 	if m.GetUserDataFixedSize() {
-		s.tables = append(s.tables, stringTable{byteSize: int(m.GetUserDataSize()), bitSize: int(m.GetUserDataSizeBits())})
+		s.tables = append(s.tables, stringTable{name: m.GetName(), byteSize: int(m.GetUserDataSize()), bitSize: int(m.GetUserDataSizeBits())})
 	} else {
-		s.tables = append(s.tables, stringTable{})
+		s.tables = append(s.tables, stringTable{name: m.GetName()})
 	}
 	s.idx[m.GetName()] = &s.tables[len(s.tables)-1]
 	table := &s.tables[len(s.tables)-1]
@@ -154,22 +155,71 @@ func (s *stringTables) handleCreate(m *dota.CSVCMsg_CreateStringTable) {
 
 	s.br.SetSource(sd)
 	table.create(s.br, int(m.GetNumEntries()))
-	fmt.Println(table)
 }
-
-// type CSVCMsg_UpdateStringTable struct {
-// 	TableId           *int32
-// 	NumChangedEntries *int32
-// 	StringData        []byte
-// }
 
 func (s *stringTables) handleUpdate(m *dota.CSVCMsg_UpdateStringTable) {
 	// hazard
-	table := s.tables[m.GetTableId()]
+	table := &s.tables[m.GetTableId()]
 	s.br.SetSource(m.GetStringData())
+	fmt.Printf("update %s\n", table.name)
 	table.update(s.br, int(m.GetNumChangedEntries()))
 }
 
 func (t *stringTable) update(br *bit.BufReader, changed int) {
+	var (
+		idx   = -1
+		entry *stringTableEntry
+	)
+	h := newIntRing(32)
+	for i := 0; i < changed; i++ {
+		// sequential index flag should rarely be true in update
+		if bit.ReadBool(br) {
+			idx++
+		} else {
+			idx = int(bit.ReadVarInt(br)) + 1
+		}
 
+		h.add(idx)
+
+		for idx > len(t.entries)-1 {
+			t.entries = append(t.entries, stringTableEntry{})
+		}
+
+		entry = &t.entries[idx]
+        fmt.Printf("%s -> ", entry)
+
+		// key flag
+		if bit.ReadBool(br) {
+			// backreading flag
+			if bit.ReadBool(br) {
+				prev, pLen := h.at(int(br.ReadBits(5))), int(br.ReadBits(5))
+				if prev < len(t.entries) {
+					prevEntry := &t.entries[prev]
+                    entry.key = prevEntry.key[:pLen] + bit.ReadString(br)
+				} else {
+					panic("backread error")
+				}
+			} else {
+                entry.key = bit.ReadString(br)
+			}
+		}
+
+		// value flag
+		if bit.ReadBool(br) {
+			if t.byteSize != 0 {
+                if entry.value == nil {
+                    entry.value = make([]byte, t.byteSize)
+                }
+			} else {
+				size, _ := int(br.ReadBits(14)), br.ReadBits(3)
+                if len(entry.value) < size {
+                    entry.value = make([]byte, size)
+                } else {
+                    entry.value = entry.value[:size]
+                }
+			}
+            br.Read(entry.value)
+		}
+        fmt.Printf("%s\n", entry)
+	}
 }
