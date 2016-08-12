@@ -194,6 +194,9 @@ func main() {
 	case "string-tables":
 		st := newStringTables()
 		handle = st.handle
+	case "class-info":
+		ci := new(classInfo)
+		handle = ci.handle
 	default:
 		bail(1, "no such action: %s", flag.Arg(0))
 	}
