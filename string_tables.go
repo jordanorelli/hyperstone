@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"unicode/utf8"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/jordanorelli/hyperstone/bit"
 	"github.com/jordanorelli/hyperstone/dota"
-	"os"
 )
 
 const (
@@ -101,10 +103,15 @@ func (s stringTableEntry) String() string {
 	if s.value == nil {
 		return fmt.Sprintf("{%s nil}", s.key)
 	}
-	if len(s.value) > 32 {
-		return fmt.Sprintf("{%s %x}", s.key, s.value[:32])
+
+	if utf8.Valid(s.value) {
+		return fmt.Sprintf("{%s %s}", s.key, s.value)
 	}
-	return fmt.Sprintf("{%s %x}", s.key, s.value)
+
+	if len(s.value) > 32 {
+		return fmt.Sprintf("{%s 0x%x}", s.key, s.value[:32])
+	}
+	return fmt.Sprintf("{%s 0x%x}", s.key, s.value)
 }
 
 func (s *stringTables) handle(m proto.Message) {
