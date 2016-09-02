@@ -1,4 +1,4 @@
-package dt
+package ent
 
 // the internal representation of table data refers to all labels as
 // interned strings (symbols). This array of string contains the mapping of

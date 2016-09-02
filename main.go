@@ -124,14 +124,11 @@ func main() {
 		handle = printTypes
 	case "pretty":
 		handle = prettyPrint
-	case "send-tables":
-		handle = sendTables
 	case "string-tables":
 		st := newStringTables()
 		handle = st.handle
 	case "class-info":
-		ci := new(classInfo)
-		handle = ci.handle
+		handle = dumpClasses
 	case "entities":
 		handle = dumpEntities
 	default:
