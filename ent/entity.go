@@ -1,8 +1,12 @@
 package ent
 
+import (
+	"github.com/jordanorelli/hyperstone/bit"
+)
+
 type Entity struct {
+	*Class
 }
 
-func (e *Entity) Update(raw []byte) {
-
+func (e *Entity) Read(br bit.Reader) {
 }

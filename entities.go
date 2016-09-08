@@ -49,13 +49,13 @@ func dumpEntities(m proto.Message) {
 			// next two bits encode one of four entity mutate operations
 			switch br.ReadBits(2) {
 			case 0:
-				// update
+				ctx.UpdateEntity(id, br)
 			case 1:
-				// leave
+				ctx.LeaveEntity(id)
 			case 2:
 				ctx.CreateEntity(id, br)
 			case 3:
-				// delete
+				ctx.DeleteEntity(id)
 			}
 		}
 	}

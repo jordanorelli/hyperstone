@@ -81,6 +81,10 @@ func (n *Namespace) MergeSendTables(st *dota.CDemoSendTables) {
 	}
 }
 
-func (n *Namespace) ReadClassId(r bit.Reader) int {
+func (n *Namespace) readClassId(r bit.Reader) int {
 	return int(r.ReadBits(uint(n.idBits)))
+}
+
+func (n *Namespace) Class(name string, version int) *Class {
+	return n.classesByName[name][version]
 }

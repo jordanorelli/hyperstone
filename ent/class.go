@@ -11,6 +11,10 @@ type Class struct {
 	Fields  []*Field
 }
 
+func (c *Class) New() *Entity {
+	return &Entity{Class: c}
+}
+
 type classId struct {
 	name    Symbol
 	version int
