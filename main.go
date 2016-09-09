@@ -14,6 +14,8 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
+
+	"github.com/jordanorelli/hyperstone/ent"
 )
 
 const (
@@ -115,6 +117,10 @@ func main() {
 	flag.StringVar(&opts.memprofile, "memprofile", "", "memory profile destination")
 	flag.StringVar(&opts.cpuprofile, "cpuprofile", "", "cpu profile destination")
 	flag.Parse()
+
+	if opts.v {
+		ent.Debug.SetOutput(os.Stdout)
+	}
 
 	var handle func(proto.Message)
 	switch flag.Arg(0) {

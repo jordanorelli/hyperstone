@@ -69,6 +69,7 @@ func (n *Namespace) MergeSendTables(st *dota.CDemoSendTables) {
 		class.fromProto(c, fields)
 
 		name := n.Symbol(int(c.GetSerializerNameSym()))
+		class.Name = name
 		version := int(c.GetSerializerVersion())
 		id := classId{name: name, version: version}
 		n.classes[id] = &class

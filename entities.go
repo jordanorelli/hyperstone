@@ -21,9 +21,9 @@ import (
 // 	MaxSpawngroupCreationsequence *uint32
 // }
 
-func dumpEntities(m proto.Message) {
-	ctx := ent.NewContext()
+var ctx = ent.NewContext()
 
+func dumpEntities(m proto.Message) {
 	switch v := m.(type) {
 	case *dota.CDemoSendTables:
 		ctx.MergeSendTables(v)
@@ -33,14 +33,18 @@ func dumpEntities(m proto.Message) {
 
 	case *dota.CSVCMsg_PacketEntities:
 		data := v.GetEntityData()
+		var datap []byte
 		if len(data) > 32 {
-			data = data[:32]
+			datap = data[:32]
+		} else {
+			datap = data
 		}
-		fmt.Printf("{MaxEntries: %d UpdatedEntries: %v IsDelta: %t UpdateBaseline: %t Baseline: %d DeltaFrom: %d EntityData: %x PendingFullFrame: %t ActiveSpawngroupHandle: %d}\n", v.GetMaxEntries(), v.GetUpdatedEntries(), v.GetIsDelta(), v.GetUpdateBaseline(), v.GetBaseline(), v.GetDeltaFrom(), data, v.GetPendingFullFrame(), v.GetActiveSpawngroupHandle())
+		fmt.Printf("{MaxEntries: %d UpdatedEntries: %v IsDelta: %t UpdateBaseline: %t Baseline: %d DeltaFrom: %d EntityData: %x PendingFullFrame: %t ActiveSpawngroupHandle: %d}\n", v.GetMaxEntries(), v.GetUpdatedEntries(), v.GetIsDelta(), v.GetUpdateBaseline(), v.GetBaseline(), v.GetDeltaFrom(), datap, v.GetPendingFullFrame(), v.GetActiveSpawngroupHandle())
 
 		br := bit.NewBytesReader(data)
 		id := -1
-		for i := 0; i < int(v.GetUpdatedEntries()); i++ {
+		// for i := 0; i < int(v.GetUpdatedEntries()); i++ {
+		for i := 0; i < 1; i++ {
 			id++
 			// there may be a jump indicator, indicating how many id positions
 			// to skip.
