@@ -39,6 +39,7 @@ func dumpEntities(m proto.Message) {
 		} else {
 			datap = data
 		}
+
 		fmt.Printf("{MaxEntries: %d UpdatedEntries: %v IsDelta: %t UpdateBaseline: %t Baseline: %d DeltaFrom: %d EntityData: %x PendingFullFrame: %t ActiveSpawngroupHandle: %d}\n", v.GetMaxEntries(), v.GetUpdatedEntries(), v.GetIsDelta(), v.GetUpdateBaseline(), v.GetBaseline(), v.GetDeltaFrom(), datap, v.GetPendingFullFrame(), v.GetActiveSpawngroupHandle())
 
 		br := bit.NewBytesReader(data)

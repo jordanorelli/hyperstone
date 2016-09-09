@@ -119,6 +119,7 @@ func main() {
 	flag.Parse()
 
 	if opts.v {
+		Debug.SetOutput(os.Stdout)
 		ent.Debug.SetOutput(os.Stdout)
 	}
 
@@ -137,6 +138,9 @@ func main() {
 		handle = dumpClasses
 	case "entities":
 		handle = dumpEntities
+	case "baseline":
+		st := newStringTables()
+		handle = st.handleBaseline
 	default:
 		bail(1, "no such action: %s", flag.Arg(0))
 	}

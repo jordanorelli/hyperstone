@@ -117,21 +117,34 @@ func (s stringTableEntry) String() string {
 func (s *stringTables) handle(m proto.Message) {
 	switch v := m.(type) {
 	case *dota.CSVCMsg_CreateStringTable:
-		prettyPrint(m)
 		s.handleCreate(v)
-		// fmt.Println(s)
 	case *dota.CSVCMsg_UpdateStringTable:
-		prettyPrint(m)
 		s.handleUpdate(v)
 	case *dota.CSVCMsg_ClearAllStringTables:
-		// prettyPrint(m)
+		Debug.Println("stringTables: clear all string tables")
 	case *dota.CDemoStringTables:
-		// prettyPrint(m)
+		Debug.Println("stringTables: ignoring a full stringtable dump")
+	}
+}
+
+func (s *stringTables) handleBaseline(m proto.Message) {
+	switch v := m.(type) {
+	case *dota.CSVCMsg_CreateStringTable:
+		s.handleCreate(v)
+		if v.GetName() == "instancebaseline" {
+			s.idx["instancebaseline"]
+			fmt.Println("FART FART FART FART FART FART")
+		}
+	case *dota.CSVCMsg_UpdateStringTable:
+		s.handleUpdate(v)
+		if s.tables[int(v.GetTableId())].name == "instancebaseline" {
+			fmt.Println("FART FART FART FART FART FART")
+		}
 	}
 }
 
 func (s *stringTables) handleCreate(m *dota.CSVCMsg_CreateStringTable) {
-	fmt.Printf("create %s\n", m.GetName())
+	Debug.Printf("stringTable create: %s entries: %d", m.GetName(), m.GetNumEntries())
 	if m.GetUserDataFixedSize() {
 		s.tables = append(s.tables, stringTable{name: m.GetName(), byteSize: int(m.GetUserDataSize()), bitSize: int(m.GetUserDataSizeBits())})
 	} else {
@@ -168,7 +181,6 @@ func (s *stringTables) handleUpdate(m *dota.CSVCMsg_UpdateStringTable) {
 	// hazard
 	table := &s.tables[m.GetTableId()]
 	s.br.SetSource(m.GetStringData())
-	fmt.Printf("update %s\n", table.name)
 	table.update(s.br, int(m.GetNumChangedEntries()))
 }
 
@@ -177,6 +189,7 @@ func (t *stringTable) update(br *bit.BufReader, changed int) {
 		idx   = -1
 		entry *stringTableEntry
 	)
+	Debug.Printf("stringTable update table: %s changed: %d", t.name, changed)
 	h := newIntRing(32)
 	for i := 0; i < changed; i++ {
 		// sequential index flag should rarely be true in update
@@ -193,7 +206,6 @@ func (t *stringTable) update(br *bit.BufReader, changed int) {
 		}
 
 		entry = &t.entries[idx]
-		fmt.Printf("%s -> ", entry)
 
 		// key flag
 		if bit.ReadBool(br) {
@@ -227,6 +239,6 @@ func (t *stringTable) update(br *bit.BufReader, changed int) {
 			}
 			br.Read(entry.value)
 		}
-		fmt.Printf("%s\n", entry)
+		Debug.Printf("stringTable %s:%s = %x", t.name, entry.key, entry.value)
 	}
 }
