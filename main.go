@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"reflect"
 	"runtime/pprof"
@@ -16,6 +17,7 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/jordanorelli/hyperstone/ent"
+	"github.com/jordanorelli/hyperstone/stbl"
 )
 
 const (
@@ -121,6 +123,7 @@ func main() {
 	if opts.v {
 		Debug.SetOutput(os.Stdout)
 		ent.Debug.SetOutput(os.Stdout)
+		stbl.Debug.SetOutput(os.Stdout)
 	}
 
 	var handle func(proto.Message)
@@ -132,15 +135,13 @@ func main() {
 	case "pretty":
 		handle = prettyPrint
 	case "string-tables":
-		st := newStringTables()
-		handle = st.handle
+		stbl.Debug = log.New(os.Stdout, "", 0)
+		d := stbl.NewDict()
+		handle = d.Handle
 	case "class-info":
 		handle = dumpClasses
 	case "entities":
 		handle = dumpEntities
-	case "baseline":
-		st := newStringTables()
-		handle = st.handleBaseline
 	default:
 		bail(1, "no such action: %s", flag.Arg(0))
 	}

@@ -1,4 +1,4 @@
-package main
+package stbl
 
 type intRing struct {
 	items []int
