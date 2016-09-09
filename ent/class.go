@@ -1,6 +1,7 @@
 package ent
 
 import (
+	"fmt"
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
@@ -13,6 +14,10 @@ type Class struct {
 
 func (c *Class) New() *Entity {
 	return &Entity{Class: c}
+}
+
+func (c Class) String() string {
+	return fmt.Sprintf("{%s %d}", c.Name, c.Version)
 }
 
 type classId struct {

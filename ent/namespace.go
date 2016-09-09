@@ -27,7 +27,7 @@ type Namespace struct {
 }
 
 // Merges in the ClassInfo data found in the replay protobufs
-func (n *Namespace) MergeClassInfo(ci *dota.CDemoClassInfo) {
+func (n *Namespace) mergeClassInfo(ci *dota.CDemoClassInfo) {
 	if n.classIds == nil {
 		n.classIds = make(map[int]string, len(ci.GetClasses()))
 	}
@@ -37,7 +37,9 @@ func (n *Namespace) MergeClassInfo(ci *dota.CDemoClassInfo) {
 	n.idBits = int(math.Floor(math.Log2(float64(len(n.classIds))))) + 1
 }
 
-func (n *Namespace) MergeSendTables(st *dota.CDemoSendTables) {
+// merges the send table data found in the replay protobufs. The send table
+// data contains a specification for an entity type system.
+func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) {
 	// sendtables only has one field, a binary data field.
 	data := st.GetData()
 	br := bit.NewBytesReader(data)

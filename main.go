@@ -141,7 +141,9 @@ func main() {
 	case "class-info":
 		handle = dumpClasses
 	case "entities":
-		handle = dumpEntities
+		ent.Debug = log.New(os.Stdout, "", 0)
+		d := ent.NewDict()
+		handle = d.Handle
 	default:
 		bail(1, "no such action: %s", flag.Arg(0))
 	}
