@@ -10,6 +10,10 @@ type Entity struct {
 	*Class
 }
 
-func (e *Entity) Read(br bit.Reader) {
-	fmt.Printf("Entity %v read\n", e)
+func (e *Entity) Read(br bit.Reader) error {
+	if e.Class == nil {
+		return fmt.Errorf("unable to read entity: entity has no class")
+	}
+	Debug.Printf("Entity %v read", e)
+	return nil
 }

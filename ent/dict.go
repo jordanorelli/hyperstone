@@ -2,12 +2,28 @@ package ent
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/golang/protobuf/proto"
 
 	"github.com/jordanorelli/hyperstone/bit"
 	"github.com/jordanorelli/hyperstone/dota"
+	"github.com/jordanorelli/hyperstone/stbl"
 )
+
+// https://developer.valvesoftware.com/wiki/Entity_limit
+//
+// There can be up to 4096 entities. This total is split into two groups of 2048:
+//   Non-networked entities, which exist only on the client or server (e.g.
+//   death ragdolls on client, logicals on server).
+//   Entities with associated edicts, which can cross the client/server divide.
+//
+// If the game tries to assign a 2049th edict it will exit with an error
+// message, but if it tries to create a 2049th non-networked entity it will
+// merely refuse and print a warning to the console. The logic behind this
+// may be that an entity spawned dynamically (i.e. not present in the map)
+// but not assigned an edict probably isn't too important.
+const e_limit = 2048
 
 // Dict corresponds to the edict_t in Valve's documentation for the Source
 // engine. See here: https://developer.valvesoftware.com/wiki/Edict_t
@@ -20,16 +36,24 @@ import (
 //   be used on the client.
 type Dict struct {
 	*Namespace
-	entities map[int]Entity
+	entities []Entity
 	br       *bit.BufReader
+
+	// a reference to our string table of entity baseline data. For whatever
+	// reason, the first set of baselines sometimes come in before the classes
+	// are defined.
+	base *stbl.Table
 }
 
-func NewDict() *Dict {
-	return &Dict{
+func NewDict(sd *stbl.Dict) *Dict {
+	d := &Dict{
 		Namespace: new(Namespace),
-		entities:  make(map[int]Entity),
+		entities:  make([]Entity, e_limit),
 		br:        new(bit.BufReader),
+		base:      sd.TableForName("instancebaseline"),
 	}
+	sd.WatchTable("instancebaseline", d.updateBaselines)
+	return d
 }
 
 // creates an entity with the provided id. the entity's contents data are read
@@ -52,18 +76,36 @@ func (d *Dict) createEntity(id int) error {
 	return nil
 }
 
+func (d *Dict) getEntity(id int) *Entity {
+	if id < 0 || id >= e_limit {
+		Debug.Printf("edict refused getEntity request for invalid id %d", id)
+		return nil
+	}
+	return &d.entities[id]
+}
+
 func (d *Dict) updateEntity(id int) error {
 	Debug.Printf("update entity id: %d\n", id)
+	e := d.getEntity(id)
+	if e == nil {
+		return fmt.Errorf("update entity %d refused: no such entity", id)
+	}
+	e.Read(d.br)
 	return nil
 }
 
 func (d *Dict) deleteEntity(id int) error {
 	Debug.Printf("delete entity id: %d\n", id)
+	if id < 0 || id >= e_limit {
+		return fmt.Errorf("delete entity %d refused: no such entity", id)
+	}
+	d.entities[id] = Entity{}
 	return nil
 }
 
 func (d *Dict) leaveEntity(id int) error {
 	Debug.Printf("leave entity id: %d\n", id)
+	// what the shit does this do?
 	return nil
 }
 
@@ -71,9 +113,11 @@ func (d *Dict) Handle(m proto.Message) {
 	switch v := m.(type) {
 	case *dota.CDemoSendTables:
 		d.mergeSendTables(v)
+		d.syncBaselines()
 
 	case *dota.CDemoClassInfo:
 		d.mergeClassInfo(v)
+		d.syncBaselines()
 
 	case *dota.CSVCMsg_PacketEntities:
 		d.mergeEntities(v)
@@ -112,4 +156,39 @@ func (d *Dict) mergeEntities(m *dota.CSVCMsg_PacketEntities) error {
 		}
 	}
 	return nil
+}
+
+func (d *Dict) updateBaselines(t *stbl.Table) {
+	d.base = t
+	d.syncBaselines()
+}
+
+func (d *Dict) syncBaselines() {
+	Debug.Printf("syncBaselines start")
+	if d.base == nil {
+		Debug.Printf("syncBaselines failed: reference to baseline string table is nil")
+		return
+	}
+
+	for _, e := range d.base.Entries() {
+		id, err := strconv.Atoi(e.Key)
+		if err != nil {
+			Debug.Printf("syncBaselines skipping entry with key %s: key failed to parse to integer: %v", e.Key, err)
+			continue
+		}
+
+		c := d.ClassByNetId(id)
+		if c == nil {
+			Debug.Printf("syncBaselines skipping entry with key %s: no such class", e.Key)
+			continue
+		}
+
+		if c.baseline == nil {
+			c.baseline = c.New()
+		}
+
+		d.br.SetSource(e.Value)
+		Debug.Printf("syncBaselines has new baseline for class %v", c)
+		c.baseline.Read(d.br)
+	}
 }

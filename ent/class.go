@@ -10,6 +10,9 @@ type Class struct {
 	Name    Symbol
 	Version int
 	Fields  []*Field
+
+	// all other entities for this class use this instance as a prototype
+	baseline *Entity
 }
 
 func (c *Class) New() *Entity {

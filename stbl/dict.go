@@ -13,18 +13,20 @@ import (
 // Dict represents a dictionary of string tables. Each table may be referenced
 // by either a numeric ID or its name.
 type Dict struct {
-	byId    []Table
-	byName  map[string]*Table
-	br      *bit.BufReader
-	scratch []byte
+	byId      []Table
+	byName    map[string]*Table
+	br        *bit.BufReader
+	scratch   []byte
+	observers map[string][]func(*Table)
 }
 
 func NewDict() *Dict {
 	return &Dict{
-		byId:    make([]Table, 0, 64),
-		byName:  make(map[string]*Table, 64),
-		br:      new(bit.BufReader),
-		scratch: make([]byte, 1<<16),
+		byId:      make([]Table, 0, 64),
+		byName:    make(map[string]*Table, 64),
+		br:        new(bit.BufReader),
+		scratch:   make([]byte, 1<<16),
+		observers: make(map[string][]func(*Table)),
 	}
 }
 
@@ -41,6 +43,7 @@ func (d *Dict) newTable(name string) *Table {
 // retained in the dict, but a pointer to the table is also returned in case
 // the newly-created table is of use to the caller.
 func (d *Dict) Create(m *dota.CSVCMsg_CreateStringTable) (*Table, error) {
+	defer d.notifyObservers(m.GetName())
 	Debug.Printf("create table %s", m.GetName())
 	t := d.newTable(m.GetName())
 
@@ -83,6 +86,7 @@ func (d *Dict) Update(m *dota.CSVCMsg_UpdateStringTable) error {
 	if t == nil {
 		return fmt.Errorf("no known string table for id %d", m.GetTableId())
 	}
+	defer d.notifyObservers(t.name)
 
 	d.br.SetSource(m.GetStringData())
 	return t.updateEntries(d.br, int(m.GetNumChangedEntries()))
@@ -110,5 +114,18 @@ func (d *Dict) Handle(m proto.Message) {
 		Debug.Println("clear all string tables")
 	case *dota.CDemoStringTables:
 		Debug.Println("ignoring a full stringtable dump")
+	}
+}
+
+func (d *Dict) WatchTable(name string, fn func(*Table)) {
+	if d.observers[name] == nil {
+		d.observers[name] = make([]func(*Table), 0, 8)
+	}
+	d.observers[name] = append(d.observers[name], fn)
+}
+
+func (d *Dict) notifyObservers(name string) {
+	for _, fn := range d.observers[name] {
+		fn(d.TableForName(name))
 	}
 }

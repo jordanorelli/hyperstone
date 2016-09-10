@@ -39,8 +39,9 @@ func (n *Namespace) mergeClassInfo(ci *dota.CDemoClassInfo) {
 
 // merges the send table data found in the replay protobufs. The send table
 // data contains a specification for an entity type system.
-func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) {
+func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) error {
 	// sendtables only has one field, a binary data field.
+	Debug.Printf("merge send tables")
 	data := st.GetData()
 	br := bit.NewBytesReader(data)
 
@@ -52,8 +53,7 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) {
 
 	flat := dota.CSVCMsg_FlattenedSerializer{}
 	if err := proto.Unmarshal(buf, &flat); err != nil {
-		fmt.Printf("error: %v\n", err)
-		return
+		return fmt.Errorf("unable to merge send tables: %v", err)
 	}
 
 	n.SymbolTable = SymbolTable(flat.GetSymbols())
@@ -67,12 +67,14 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) {
 	n.classesByName = make(map[string]map[int]*Class, len(flat.GetSerializers()))
 
 	for _, c := range flat.GetSerializers() {
-		class := Class{}
+		name := n.Symbol(int(c.GetSerializerNameSym()))
+		version := int(c.GetSerializerVersion())
+
+		class := Class{Name: name, Version: version}
 		class.fromProto(c, fields)
 
-		name := n.Symbol(int(c.GetSerializerNameSym()))
-		class.Name = name
-		version := int(c.GetSerializerVersion())
+		Debug.Printf("new class: %v", class)
+
 		id := classId{name: name, version: version}
 		n.classes[id] = &class
 
@@ -82,6 +84,8 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) {
 			n.classesByName[name.String()][version] = &class
 		}
 	}
+
+	return br.Err()
 }
 
 func (n *Namespace) readClassId(r bit.Reader) int {
@@ -90,4 +94,23 @@ func (n *Namespace) readClassId(r bit.Reader) int {
 
 func (n *Namespace) Class(name string, version int) *Class {
 	return n.classesByName[name][version]
+}
+
+func (n *Namespace) ClassByNetId(id int) *Class {
+	name, ok := n.classIds[id]
+	if !ok {
+		Debug.Printf("can't find class name for net id %d", id)
+		return nil
+	}
+	versions, newest := n.classesByName[name], -1
+	for v, _ := range versions {
+		if v > newest {
+			newest = v
+		}
+	}
+	if newest == -1 {
+		Debug.Printf("class %s has no known versions in its version map", name)
+		return nil
+	}
+	return versions[newest]
 }

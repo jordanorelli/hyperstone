@@ -10,8 +10,12 @@ type Table struct {
 	name     string
 	entries  []Entry
 	byteSize int
-	bitSize  int // this is in the protobuf message but I don't know what it does.
+
+	// this is in the protobuf message but I don't know what it does.
+	bitSize int
 }
+
+func (t *Table) Entries() []Entry { return t.entries }
 
 // creates n entries from the bit stream br
 func (t *Table) createEntries(br *bit.BufReader, n int) error {
@@ -38,22 +42,22 @@ func (t *Table) createEntries(br *bit.BufReader, n int) error {
 			// backreading flag: indicates that the key references an earlier
 			// key or a portion of an earlier key as a prefix
 			if bit.ReadBool(br) {
-				entry.key = t.entries[base+br.ReadBits(5)].key[:br.ReadBits(5)] + bit.ReadString(br)
+				entry.Key = t.entries[base+br.ReadBits(5)].Key[:br.ReadBits(5)] + bit.ReadString(br)
 			} else {
-				entry.key = bit.ReadString(br)
+				entry.Key = bit.ReadString(br)
 			}
 		}
 
 		// value flag: indicates that a value is present
 		if bit.ReadBool(br) {
 			if t.byteSize != 0 {
-				entry.value = make([]byte, t.byteSize)
-				br.Read(entry.value)
+				entry.Value = make([]byte, t.byteSize)
+				br.Read(entry.Value)
 			} else {
 				size := br.ReadBits(14)
 				br.ReadBits(3) // ???
-				entry.value = make([]byte, size)
-				br.Read(entry.value)
+				entry.Value = make([]byte, size)
+				br.Read(entry.Value)
 			}
 		}
 	}
@@ -91,32 +95,32 @@ func (t *Table) updateEntries(br *bit.BufReader, n int) error {
 				prev, pLen := h.at(int(br.ReadBits(5))), int(br.ReadBits(5))
 				if prev < len(t.entries) {
 					prevEntry := &t.entries[prev]
-					entry.key = prevEntry.key[:pLen] + bit.ReadString(br)
+					entry.Key = prevEntry.Key[:pLen] + bit.ReadString(br)
 				} else {
 					return fmt.Errorf("backread error")
 				}
 			} else {
-				entry.key = bit.ReadString(br)
+				entry.Key = bit.ReadString(br)
 			}
 		}
 
 		// value flag
 		if bit.ReadBool(br) {
 			if t.byteSize != 0 {
-				if entry.value == nil {
-					entry.value = make([]byte, t.byteSize)
+				if entry.Value == nil {
+					entry.Value = make([]byte, t.byteSize)
 				}
 			} else {
 				size, _ := int(br.ReadBits(14)), br.ReadBits(3)
-				if len(entry.value) < size {
-					entry.value = make([]byte, size)
+				if len(entry.Value) < size {
+					entry.Value = make([]byte, size)
 				} else {
-					entry.value = entry.value[:size]
+					entry.Value = entry.Value[:size]
 				}
 			}
-			br.Read(entry.value)
+			br.Read(entry.Value)
 		}
-		Debug.Printf("%s:%s = %x", t.name, entry.key, entry.value)
+		Debug.Printf("%s:%s = %x", t.name, entry.Key, entry.Value)
 	}
 	return nil
 }

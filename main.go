@@ -142,8 +142,12 @@ func main() {
 		handle = dumpClasses
 	case "entities":
 		ent.Debug = log.New(os.Stdout, "", 0)
-		d := ent.NewDict()
-		handle = d.Handle
+		sd := stbl.NewDict()
+		ed := ent.NewDict(sd)
+		handle = func(m proto.Message) {
+			sd.Handle(m)
+			ed.Handle(m)
+		}
 	default:
 		bail(1, "no such action: %s", flag.Arg(0))
 	}
