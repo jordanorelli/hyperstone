@@ -14,6 +14,12 @@ func (e *Entity) Read(br bit.Reader) error {
 	if e.Class == nil {
 		return fmt.Errorf("unable to read entity: entity has no class")
 	}
-	Debug.Printf("Entity %v read", e)
+	Debug.Printf("entity %v read", e)
+
+	fp := newFieldPath()
+	for fn := walk(htree, br); fn != nil; fn = walk(htree, br) {
+		fn(fp, br)
+	}
+	Debug.Printf("fieldpath %s", fp.pathString())
 	return nil
 }
