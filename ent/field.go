@@ -8,16 +8,17 @@ import (
 )
 
 type Field struct {
-	_type             Symbol
-	name              Symbol
-	sendNode          Symbol
-	bits              *int
-	low               *float32
-	high              *float32
-	flags             *int32
-	serializer        *Symbol
-	serializerVersion *int32
-	encoder           *Symbol
+	_type             Symbol   // type of data held by the field
+	name              Symbol   // name of the field
+	sendNode          Symbol   // not sure what this is
+	bits              *int     // number of bits used to encode field?
+	low               *float32 // lower limit of field values
+	high              *float32 // upper limit of field values
+	flags             *int32   // dunno what these flags do
+	serializer        *Symbol  // class on which the field was defined
+	serializerVersion *int32   // version of the class on which the field was defined
+	class             *Class   // source class on which the field was originally defined
+	encoder           *Symbol  // binary reader
 }
 
 func (f Field) String() string {
@@ -71,4 +72,5 @@ func (f *Field) fromProto(flat *dota.ProtoFlattenedSerializerFieldT, t *SymbolTa
 	f.serializerVersion = flat.FieldSerializerVersion
 	// panic if we don't have a send node cause that shit is corrupt yo
 	f.sendNode = t.Symbol(int(*flat.SendNodeSym))
+	Debug.Printf("new field: %v", f)
 }

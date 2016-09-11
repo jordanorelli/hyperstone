@@ -37,6 +37,10 @@ func (n *Namespace) mergeClassInfo(ci *dota.CDemoClassInfo) {
 	n.idBits = int(math.Floor(math.Log2(float64(len(n.classIds))))) + 1
 }
 
+func (n *Namespace) hasClassinfo() bool {
+	return n.classIds != nil && len(n.classIds) > 0
+}
+
 // merges the send table data found in the replay protobufs. The send table
 // data contains a specification for an entity type system.
 func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) error {
@@ -58,6 +62,8 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) error {
 
 	n.SymbolTable = SymbolTable(flat.GetSymbols())
 
+	// the full set of fields that may appear on the classes is read first.
+	// each class will have a list of fields.
 	fields := make([]Field, len(flat.GetFields()))
 	for i, f := range flat.GetFields() {
 		fields[i].fromProto(f, &n.SymbolTable)
@@ -66,14 +72,14 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) error {
 	n.classes = make(map[classId]*Class, len(flat.GetSerializers()))
 	n.classesByName = make(map[string]map[int]*Class, len(flat.GetSerializers()))
 
+	// each serializer in the source data generates a class.
 	for _, c := range flat.GetSerializers() {
 		name := n.Symbol(int(c.GetSerializerNameSym()))
 		version := int(c.GetSerializerVersion())
 
+		Debug.Printf("new class: %s %v", name, version)
 		class := Class{Name: name, Version: version}
 		class.fromProto(c, fields)
-
-		Debug.Printf("new class: %v", class)
 
 		id := classId{name: name, version: version}
 		n.classes[id] = &class
@@ -82,6 +88,23 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) error {
 			n.classesByName[name.String()] = map[int]*Class{version: &class}
 		} else {
 			n.classesByName[name.String()][version] = &class
+		}
+	}
+
+	// some fields explicitly reference their origin class (P). that is is, if
+	// a given field F is included in some class C, the field F having an
+	// origin class P indicates that the class C has the class P as an
+	// ancestor. since these references are circular, we unpacked the fields
+	// first, then the classes, and now we re-visit the fields to set their
+	// origin class pointers, now that the classes exist.
+	for i := range fields {
+		f := &fields[i]
+		if f.serializer != nil {
+			if f.serializerVersion != nil {
+				f.class = n.classesByName[f.serializer.String()][int(*f.serializerVersion)]
+			} else {
+				f.class = n.NewestClass(f.serializer.String())
+			}
 		}
 	}
 
@@ -96,12 +119,8 @@ func (n *Namespace) Class(name string, version int) *Class {
 	return n.classesByName[name][version]
 }
 
-func (n *Namespace) ClassByNetId(id int) *Class {
-	name, ok := n.classIds[id]
-	if !ok {
-		Debug.Printf("can't find class name for net id %d", id)
-		return nil
-	}
+// retrieves the newest version of a class, as referenced by name.
+func (n *Namespace) NewestClass(name string) *Class {
 	versions, newest := n.classesByName[name], -1
 	for v, _ := range versions {
 		if v > newest {
@@ -109,8 +128,15 @@ func (n *Namespace) ClassByNetId(id int) *Class {
 		}
 	}
 	if newest == -1 {
-		Debug.Printf("class %s has no known versions in its version map", name)
-		return nil
+		Info.Fatalf("class %s has no known versions in its version map", name)
 	}
 	return versions[newest]
+}
+
+func (n *Namespace) ClassByNetId(id int) *Class {
+	name, ok := n.classIds[id]
+	if !ok {
+		Info.Fatalf("can't find class name for net id %d", id)
+	}
+	return n.NewestClass(name)
 }

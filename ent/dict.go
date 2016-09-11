@@ -164,6 +164,10 @@ func (d *Dict) updateBaselines(t *stbl.Table) {
 }
 
 func (d *Dict) syncBaselines() {
+	if !d.hasClassinfo() {
+		Debug.Printf("syncBaselines skip: no classInfo yet")
+		return
+	}
 	Debug.Printf("syncBaselines start")
 	if d.base == nil {
 		Debug.Printf("syncBaselines failed: reference to baseline string table is nil")

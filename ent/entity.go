@@ -8,6 +8,7 @@ import (
 
 type Entity struct {
 	*Class
+	fields map[string]interface{}
 }
 
 func (e *Entity) Read(br bit.Reader) error {
@@ -17,9 +18,8 @@ func (e *Entity) Read(br bit.Reader) error {
 	Debug.Printf("entity %v read", e)
 
 	fp := newFieldPath()
-	if err := fp.read(br, htree); err != nil {
+	if err := fp.read(br, htree, e.Class); err != nil {
 		return fmt.Errorf("unable to read entity: %v", err)
 	}
-	Debug.Printf("fieldpath %v", fp.path())
 	return nil
 }

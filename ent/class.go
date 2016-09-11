@@ -13,10 +13,12 @@ type Class struct {
 
 	// all other entities for this class use this instance as a prototype
 	baseline *Entity
+
+	fp *fieldPath
 }
 
 func (c *Class) New() *Entity {
-	return &Entity{Class: c}
+	return &Entity{Class: c, fields: make(map[string]interface{}, len(c.Fields))}
 }
 
 func (c Class) String() string {
