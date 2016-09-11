@@ -187,8 +187,16 @@ func (d *Dict) syncBaselines() {
 			c.baseline = c.New()
 		}
 
+		if e.Value == nil || len(e.Value) == 0 {
+			Debug.Printf("syncBaselines skipping entry with key %s: value is empty", e.Key)
+			continue
+		}
+
 		d.br.SetSource(e.Value)
 		Debug.Printf("syncBaselines has new baseline for class %v", c)
-		c.baseline.Read(d.br)
+		if err := c.baseline.Read(d.br); err != nil {
+			Debug.Printf("syncBaselines failed to read a baseline: %v", err)
+			continue
+		}
 	}
 }

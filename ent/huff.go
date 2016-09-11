@@ -181,15 +181,12 @@ var hlist = nodeList{
 		})
 	}},
 	lNode{"NonTopoComplex", 36, 76, func(fp *fieldPath, br bit.Reader) {
-		panic("not implemented: NonTopoComplex")
-		// for i := 0; i < len(fp.index); i++ {
-		// 	fp.replaceAll(func(i int) int {
-		// 		if bit.ReadBool(br) {
-		// 			return i + bit.ReadVarInt(br)
-		// 		}
-		// 		return i
-		// 	})
-		// }
+		fp.replaceAll(func(i int) int {
+			if bit.ReadBool(br) {
+				return i + int(bit.ReadZigZag32(br))
+			}
+			return i
+		})
 	}},
 	lNode{"PushOneLeftDeltaZeroRightZero", 5, 35, func(fp *fieldPath, br bit.Reader) {
 		fp.push(0)
@@ -202,7 +199,13 @@ var hlist = nodeList{
 		fp.add(1)
 	}},
 	lNode{"PopNAndNonTopographical", 35, 1, func(fp *fieldPath, br bit.Reader) {
-		panic("not implemented: PopNAndNonTopographical")
+		fp.last -= int(bit.ReadUBitVarFP(br))
+		fp.replaceAll(func(i int) int {
+			if bit.ReadBool(br) {
+				return i + int(bit.ReadZigZag32(br))
+			}
+			return i
+		})
 	}},
 
 	// all the other operations have weights of 0 in clarity, which makes no
@@ -250,7 +253,8 @@ var hlist = nodeList{
 		panic("not implemented: PushThreeLeftDeltaZero")
 	}},
 	lNode{"PushTwoPack5LeftDeltaZero", 14, 1, func(fp *fieldPath, br bit.Reader) {
-		panic("not implemented: PushTwoPack5LeftDeltaZero")
+		fp.push(int(br.ReadBits(5)))
+		fp.push(int(br.ReadBits(5)))
 	}},
 	lNode{"PushTwoLeftDeltaZero", 13, 1, func(fp *fieldPath, br bit.Reader) {
 		panic("not implemented: PushTwoLeftDeltaZero")
