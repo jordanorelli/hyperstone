@@ -17,12 +17,9 @@ func (e *Entity) Read(br bit.Reader) error {
 	Debug.Printf("entity %v read", e)
 
 	fp := newFieldPath()
-	for fn := walk(htree, br); fn != nil; fn = walk(htree, br) {
-		if err := br.Err(); err != nil {
-			return fmt.Errorf("unable to read entity: reader error: %v", err)
-		}
-		fn(fp, br)
+	if err := fp.read(br, htree); err != nil {
+		return fmt.Errorf("unable to read entity: %v", err)
 	}
-	Debug.Printf("fieldpath %s", fp.pathString())
+	Debug.Printf("fieldpath %v", fp.path())
 	return nil
 }

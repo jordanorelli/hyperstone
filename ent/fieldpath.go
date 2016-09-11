@@ -1,14 +1,16 @@
 package ent
 
 import (
-	"bytes"
 	"fmt"
+	"github.com/jordanorelli/hyperstone/bit"
 )
 
 // a fieldpath is a list of integers that is used to walk the type hierarchy to
 // identify a given field on a given type.
 type fieldPath struct {
+	// slice of values, to be reused over and over
 	vals []int
+	// index of the last valid value. e.g., the head of the stack.
 	last int
 }
 
@@ -38,10 +40,20 @@ func (f *fieldPath) replaceAll(fn func(v int) int) {
 	}
 }
 
-func (f *fieldPath) pathString() string {
-	var buf bytes.Buffer
-	for i := 0; i <= f.last; i++ {
-		fmt.Fprintf(&buf, "/%d", f.vals[i])
+// reads the sequence of id values off of the provided bit reader given the
+// huffman tree of fieldpath ops rooted at the node n
+func (f *fieldPath) read(br bit.Reader, n node) error {
+	f.last = 0
+	for fn := walk(n, br); fn != nil; fn = walk(n, br) {
+		if err := br.Err(); err != nil {
+			return fmt.Errorf("unable to read fieldpath: reader error: %v", err)
+		}
+		fn(f, br)
 	}
-	return buf.String()
+	return nil
+}
+
+// the subslice of valid index values that has been read on the fieldpath
+func (f *fieldPath) path() []int {
+	return f.vals[:f.last+1]
 }
