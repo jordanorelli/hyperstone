@@ -38,6 +38,7 @@ type Dict struct {
 	*Namespace
 	entities []Entity
 	br       *bit.BufReader
+	sr       *selectionReader
 
 	// a reference to our string table of entity baseline data. For whatever
 	// reason, the first set of baselines sometimes come in before the classes
@@ -50,6 +51,7 @@ func NewDict(sd *stbl.Dict) *Dict {
 		Namespace: new(Namespace),
 		entities:  make([]Entity, e_limit),
 		br:        new(bit.BufReader),
+		sr:        new(selectionReader),
 		base:      sd.TableForName("instancebaseline"),
 	}
 	sd.WatchTable("instancebaseline", d.updateBaselines)
@@ -72,7 +74,7 @@ func (d *Dict) createEntity(id int) error {
 	}
 	Debug.Printf("create entity id: %d classId: %d className: %v class: %v\n", id, classId, className, class)
 	e := class.New()
-	e.Read(d.br)
+	e.Read(d.br, d.sr)
 	return nil
 }
 
@@ -90,7 +92,7 @@ func (d *Dict) updateEntity(id int) error {
 	if e == nil {
 		return fmt.Errorf("update entity %d refused: no such entity", id)
 	}
-	e.Read(d.br)
+	e.Read(d.br, d.sr)
 	return nil
 }
 
@@ -198,7 +200,7 @@ func (d *Dict) syncBaselines() {
 
 		d.br.SetSource(e.Value)
 		Debug.Printf("syncBaselines has new baseline for class %v", c)
-		if err := c.baseline.Read(d.br); err != nil {
+		if err := c.baseline.Read(d.br, d.sr); err != nil {
 			Debug.Printf("syncBaselines failed to read a baseline: %v", err)
 			continue
 		}

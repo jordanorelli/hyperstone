@@ -10,18 +10,17 @@ type Entity struct {
 	*Class
 }
 
-func (e *Entity) Read(br bit.Reader) error {
+func (e *Entity) Read(br bit.Reader, sr *selectionReader) error {
 	if e.Class == nil {
 		return fmt.Errorf("unable to read entity: entity has no class")
 	}
 	Debug.Printf("entity %v read", e)
 
-	r := newSelectionReader()
-	if err := r.read(br, htree); err != nil {
+	if err := sr.read(br, htree); err != nil {
 		return fmt.Errorf("unable to read entity: %v", err)
 	}
 
-	for _, s := range r.selections() {
+	for _, s := range sr.selections() {
 		switch s.count {
 		case 0:
 			Debug.Printf("FUCK!")
