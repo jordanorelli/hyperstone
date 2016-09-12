@@ -33,7 +33,7 @@ type lNode struct {
 	name  string
 	_rank int
 	freq  int
-	fn    func(*fieldPath, bit.Reader)
+	fn    selectionOp
 }
 
 func (n lNode) String() string {
@@ -91,7 +91,9 @@ func makeTree(l nodeList) node {
 	return l[0]
 }
 
-func walk(n node, br bit.Reader) func(*fieldPath, bit.Reader) {
+// walks the huffman tree rooted at the node n, returning the selection op
+// encoded by the tree.
+func walk(n node, br bit.Reader) selectionOp {
 	switch v := n.(type) {
 	case lNode:
 		// Debug.Printf("fieldpath fn: %s", v.name)
@@ -118,89 +120,89 @@ func dump(n node, prefix string, w io.Writer) {
 }
 
 var hlist = nodeList{
-	lNode{"PlusOne", 0, 36271, func(fp *fieldPath, br bit.Reader) {
-		fp.add(1)
+	lNode{"PlusOne", 0, 36271, func(r *selectionReader, br bit.Reader) {
+		r.add(1)
 	}},
 	lNode{"FieldPathEncodeFinish", 39, 25474, nil},
-	lNode{"PushOneLeftDeltaNRightNonZeroPack6Bits", 11, 10530, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushOneLeftDeltaNRightNonZeroPack6Bits", 11, 10530, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushOneLeftDeltaNRightNonZeroPack6Bits")
 	}},
-	lNode{"PlusTwo", 1, 10334, func(fp *fieldPath, br bit.Reader) {
-		fp.add(2)
+	lNode{"PlusTwo", 1, 10334, func(r *selectionReader, br bit.Reader) {
+		r.add(2)
 	}},
-	lNode{"PlusN", 4, 4128, func(fp *fieldPath, br bit.Reader) {
-		fp.add(int(bit.ReadUBitVarFP(br)) + 5)
+	lNode{"PlusN", 4, 4128, func(r *selectionReader, br bit.Reader) {
+		r.add(int(bit.ReadUBitVarFP(br)) + 5)
 	}},
-	lNode{"PushOneLeftDeltaOneRightNonZero", 8, 2942, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushOneLeftDeltaOneRightNonZero", 8, 2942, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushOneLeftDeltaOneRightNonZero")
 	}},
-	lNode{"PopAllButOnePlusOne", 29, 1837, func(fp *fieldPath, br bit.Reader) {
-		fp.last = 0
-		fp.add(1)
+	lNode{"PopAllButOnePlusOne", 29, 1837, func(r *selectionReader, br bit.Reader) {
+		r.cur.count = 1
+		r.add(1)
 	}},
-	lNode{"PlusThree", 2, 1375, func(fp *fieldPath, br bit.Reader) {
-		fp.add(3)
+	lNode{"PlusThree", 2, 1375, func(r *selectionReader, br bit.Reader) {
+		r.add(3)
 	}},
-	lNode{"PlusFour", 3, 646, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PlusFour", 3, 646, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PlusFour")
 	}},
-	lNode{"PopAllButOnePlusNPack6Bits", 32, 634, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PopAllButOnePlusNPack6Bits", 32, 634, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PopAllButOnePlusNPack6Bits")
 	}},
-	lNode{"PushOneLeftDeltaNRightZero", 9, 560, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushOneLeftDeltaNRightZero", 9, 560, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushOneLeftDeltaNRightZero")
 	}},
-	lNode{"PushOneLeftDeltaOneRightZero", 7, 521, func(fp *fieldPath, br bit.Reader) {
-		fp.add(1)
-		fp.push(0)
+	lNode{"PushOneLeftDeltaOneRightZero", 7, 521, func(r *selectionReader, br bit.Reader) {
+		r.add(1)
+		r.push(0)
 	}},
-	lNode{"PushOneLeftDeltaNRightNonZero", 10, 471, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushOneLeftDeltaNRightNonZero", 10, 471, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushOneLeftDeltaNRightNonZero")
 	}},
-	lNode{"PushNAndNonTopological", 26, 310, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushNAndNonTopological", 26, 310, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushNAndNonTopological")
 	}},
-	lNode{"PopAllButOnePlusNPack3Bits", 31, 300, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PopAllButOnePlusNPack3Bits", 31, 300, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PopAllButOnePlusNPack3Bits")
 	}},
-	lNode{"NonTopoPenultimatePlusOne", 37, 271, func(fp *fieldPath, br bit.Reader) {
+	lNode{"NonTopoPenultimatePlusOne", 37, 271, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: NonTopoPenultimatePlusOne")
 	}},
-	lNode{"PushOneLeftDeltaNRightNonZeroPack8Bits", 12, 251, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushOneLeftDeltaNRightNonZeroPack8Bits", 12, 251, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushOneLeftDeltaNRightNonZeroPack8Bits")
 	}},
-	lNode{"PopAllButOnePlusN", 30, 149, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PopAllButOnePlusN", 30, 149, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PopAllButOnePlusN")
 	}},
-	lNode{"NonTopoComplexPack4Bits", 38, 99, func(fp *fieldPath, br bit.Reader) {
-		fp.replaceAll(func(i int) int {
+	lNode{"NonTopoComplexPack4Bits", 38, 99, func(r *selectionReader, br bit.Reader) {
+		r.måp(func(i int) int {
 			if bit.ReadBool(br) {
 				return i + int(br.ReadBits(4)) - 7 // ?!
 			}
 			return i
 		})
 	}},
-	lNode{"NonTopoComplex", 36, 76, func(fp *fieldPath, br bit.Reader) {
-		fp.replaceAll(func(i int) int {
+	lNode{"NonTopoComplex", 36, 76, func(r *selectionReader, br bit.Reader) {
+		r.måp(func(i int) int {
 			if bit.ReadBool(br) {
 				return i + int(bit.ReadZigZag32(br))
 			}
 			return i
 		})
 	}},
-	lNode{"PushOneLeftDeltaZeroRightZero", 5, 35, func(fp *fieldPath, br bit.Reader) {
-		fp.push(0)
+	lNode{"PushOneLeftDeltaZeroRightZero", 5, 35, func(r *selectionReader, br bit.Reader) {
+		r.push(0)
 	}},
-	lNode{"PushOneLeftDeltaZeroRightNonZero", 6, 3, func(fp *fieldPath, br bit.Reader) {
-		fp.push(int(bit.ReadUBitVarFP(br)))
+	lNode{"PushOneLeftDeltaZeroRightNonZero", 6, 3, func(r *selectionReader, br bit.Reader) {
+		r.push(int(bit.ReadUBitVarFP(br)))
 	}},
-	lNode{"PopOnePlusOne", 27, 2, func(fp *fieldPath, br bit.Reader) {
-		fp.pop()
-		fp.add(1)
+	lNode{"PopOnePlusOne", 27, 2, func(r *selectionReader, br bit.Reader) {
+		r.pop()
+		r.add(1)
 	}},
-	lNode{"PopNAndNonTopographical", 35, 1, func(fp *fieldPath, br bit.Reader) {
-		fp.last -= int(bit.ReadUBitVarFP(br))
-		fp.replaceAll(func(i int) int {
+	lNode{"PopNAndNonTopographical", 35, 1, func(r *selectionReader, br bit.Reader) {
+		r.count -= int(bit.ReadUBitVarFP(br))
+		r.måp(func(i int) int {
 			if bit.ReadBool(br) {
 				return i + int(bit.ReadZigZag32(br))
 			}
@@ -210,53 +212,53 @@ var hlist = nodeList{
 
 	// all the other operations have weights of 0 in clarity, which makes no
 	// sense.
-	lNode{"PopNPlusN", 34, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PopNPlusN", 34, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PopNPlusN")
 	}},
-	lNode{"PopNPlusOne", 33, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PopNPlusOne", 33, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PopNPlusOne")
 	}},
-	lNode{"PopOnePlusN", 28, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PopOnePlusN", 28, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PopOnePlusN")
 	}},
-	lNode{"PushN", 25, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushN", 25, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushN")
 	}},
-	lNode{"PushThreePack5LeftDeltaN", 24, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushThreePack5LeftDeltaN", 24, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushThreePack5LeftDeltaN")
 	}},
-	lNode{"PushThreeLeftDeltaN", 23, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushThreeLeftDeltaN", 23, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushThreeLeftDeltaN")
 	}},
-	lNode{"PushTwoPack5LeftDeltaN", 22, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushTwoPack5LeftDeltaN", 22, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushTwoPack5LeftDeltaN")
 	}},
-	lNode{"PushTwoLeftDeltaN", 21, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushTwoLeftDeltaN", 21, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushTwoLeftDeltaN")
 	}},
-	lNode{"PushThreePack5LeftDeltaOne", 20, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushThreePack5LeftDeltaOne", 20, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushThreePack5LeftDeltaOne")
 	}},
-	lNode{"PushThreeLeftDeltaOne", 19, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushThreeLeftDeltaOne", 19, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushThreeLeftDeltaOne")
 	}},
-	lNode{"PushTwoPack5LeftDeltaOne", 18, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushTwoPack5LeftDeltaOne", 18, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushTwoPack5LeftDeltaOne")
 	}},
-	lNode{"PushTwoLeftDeltaOne", 17, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushTwoLeftDeltaOne", 17, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushTwoLeftDeltaOne")
 	}},
-	lNode{"PushThreePack5LeftDeltaZero", 16, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushThreePack5LeftDeltaZero", 16, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushThreePack5LeftDeltaZero")
 	}},
-	lNode{"PushThreeLeftDeltaZero", 15, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushThreeLeftDeltaZero", 15, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushThreeLeftDeltaZero")
 	}},
-	lNode{"PushTwoPack5LeftDeltaZero", 14, 1, func(fp *fieldPath, br bit.Reader) {
-		fp.push(int(br.ReadBits(5)))
-		fp.push(int(br.ReadBits(5)))
+	lNode{"PushTwoPack5LeftDeltaZero", 14, 1, func(r *selectionReader, br bit.Reader) {
+		r.push(int(br.ReadBits(5)))
+		r.push(int(br.ReadBits(5)))
 	}},
-	lNode{"PushTwoLeftDeltaZero", 13, 1, func(fp *fieldPath, br bit.Reader) {
+	lNode{"PushTwoLeftDeltaZero", 13, 1, func(r *selectionReader, br bit.Reader) {
 		panic("not implemented: PushTwoLeftDeltaZero")
 	}},
 }

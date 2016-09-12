@@ -17,8 +17,6 @@ type Class struct {
 	// maps field names back to their indexes. Entities use this to access
 	// their own fields by name instead of by slot.
 	fieldNames map[string]int
-
-	fp *fieldPath
 }
 
 func (c *Class) New() *Entity {

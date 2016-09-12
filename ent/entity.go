@@ -16,17 +16,19 @@ func (e *Entity) Read(br bit.Reader) error {
 	}
 	Debug.Printf("entity %v read", e)
 
-	fp := newFieldPath()
-	if err := fp.read(br, htree, e.Class); err != nil {
+	r := newSelectionReader()
+	if err := r.read(br, htree); err != nil {
 		return fmt.Errorf("unable to read entity: %v", err)
 	}
-	for i := 0; i <= fp.hlast; i++ {
-		if fp.history[i][0] == 0 {
-			Debug.Printf("direct selection: %v", fp.history[i][1])
-			Debug.Printf("field: %v", e.Class.Fields[fp.history[i][1]])
-		} else {
-			Debug.Printf("child selection: %v (%v)", fp.history[i],
-				fp.history[i][1:fp.history[i][0]+2])
+
+	for _, s := range r.selections() {
+		switch s.count {
+		case 0:
+			Debug.Printf("FUCK!")
+		case 1:
+			Debug.Printf("direct selection: %v", s.path())
+		default:
+			Debug.Printf("child selection: %v", s.path())
 		}
 	}
 	return nil
