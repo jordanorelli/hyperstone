@@ -106,6 +106,11 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) error {
 				f.class = n.NewestClass(f.serializer.String())
 			}
 		}
+
+		// we also wait until after we've discovered all of the classes to
+		// build the field decoder functions, because some fields are
+		// themselves entities.
+		f.decoder = newFieldDecoder(n, f)
 	}
 
 	return br.Err()
@@ -139,4 +144,9 @@ func (n *Namespace) ClassByNetId(id int) *Class {
 		Info.Fatalf("can't find class name for net id %d", id)
 	}
 	return n.NewestClass(name)
+}
+
+func (n *Namespace) HasClass(name string) bool {
+	_, ok := n.classesByName[name]
+	return ok
 }

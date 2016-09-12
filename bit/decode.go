@@ -4,6 +4,11 @@ import (
 	"bytes"
 )
 
+// normalized values are represented with 11 significant bits. we pre-compute a
+// divisor so that we can use a multiply instruction and avoid using
+// floating-point division during the lifecycle of the program.
+var normal_divisor = float32(1.0) / float32(2047)
+
 // ReadUbitVar reads a prefixed uint value. A prefix is 2 bits wide, followed
 // by the 4 least-significant bits, then a variable number of most-significant
 // bits based on the prefix.
@@ -108,4 +113,17 @@ func ReadZigZag32(r Reader) int32 {
 		return ^int32(u >> 1)
 	}
 	return int32(u >> 1)
+}
+
+// reads a 12-bit normalized float. The first bit represents a sign bit, the
+// next sequence of 11 bits represents some normalized value between 0 and
+// 2047, allowing up to 4096 positions between -1.0 and 1.0. the resulting
+// float will always be between -1.0 and 1.0 (that's why it's normal)
+func ReadNormal(r Reader) float32 {
+	// sign bit
+	if ReadBool(r) {
+		return float32(r.ReadBits(11)) * normal_divisor
+	} else {
+		return -float32(r.ReadBits(11)) * normal_divisor
+	}
 }

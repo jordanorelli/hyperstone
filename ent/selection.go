@@ -42,8 +42,10 @@ func (r *selectionReader) read(br bit.Reader, n node) error {
 			return fmt.Errorf("unable to read selection: bit reader error: %v", err)
 		}
 		fn(r, br)
-		Debug.Printf("selection: %v", r.cur.path())
 		r.keep()
+	}
+	if err := br.Err(); err != nil {
+		return fmt.Errorf("unable to read selection: bit reader error: %v", err)
 	}
 	return nil
 }

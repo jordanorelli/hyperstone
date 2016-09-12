@@ -11,30 +11,31 @@ type Field struct {
 	_type             Symbol   // type of data held by the field
 	name              Symbol   // name of the field
 	sendNode          Symbol   // not sure what this is
-	bits              *int     // number of bits used to encode field?
+	bits              int      // number of bits used to encode field?
 	low               *float32 // lower limit of field values
 	high              *float32 // upper limit of field values
-	flags             *int32   // dunno what these flags do
+	flags             int      // dunno what these flags do
 	serializer        *Symbol  // class on which the field was defined
 	serializerVersion *int32   // version of the class on which the field was defined
 	class             *Class   // source class on which the field was originally defined
-	encoder           *Symbol  // binary reader
+	encoder           *Symbol  // binary encoder, named explicitly in protobuf
+	decoder                    // decodes field values from a bit stream
 }
 
 func (f Field) String() string {
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "{type: %s name: %s send: %s", f._type, f.name, f.sendNode)
-	if f.bits != nil {
-		fmt.Fprintf(&buf, " bits: %d", *f.bits)
+	if f.bits > 0 {
+		fmt.Fprintf(&buf, " bits: %d", f.bits)
+	}
+	if f.flags > 0 {
+		fmt.Fprintf(&buf, " flags: %d", f.flags)
 	}
 	if f.low != nil {
 		fmt.Fprintf(&buf, " low: %f", *f.low)
 	}
 	if f.high != nil {
 		fmt.Fprintf(&buf, " high: %f", *f.high)
-	}
-	if f.flags != nil {
-		fmt.Fprintf(&buf, " flags: %d", *f.flags)
 	}
 	if f.serializer != nil {
 		fmt.Fprintf(&buf, " serializer: %s", *f.serializer)
@@ -52,15 +53,10 @@ func (f Field) String() string {
 func (f *Field) fromProto(flat *dota.ProtoFlattenedSerializerFieldT, t *SymbolTable) {
 	f._type = t.Symbol(int(flat.GetVarTypeSym()))
 	f.name = t.Symbol(int(flat.GetVarNameSym()))
-	if flat.BitCount == nil {
-		f.bits = nil
-	} else {
-		f.bits = new(int)
-		*f.bits = int(flat.GetBitCount())
-	}
+	f.bits = int(flat.GetBitCount())
+	f.flags = int(flat.GetEncodeFlags())
 	f.low = flat.LowValue
 	f.high = flat.HighValue
-	f.flags = flat.EncodeFlags
 
 	if flat.FieldSerializerNameSym == nil {
 		f.serializer = nil
