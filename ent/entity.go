@@ -8,7 +8,6 @@ import (
 
 type Entity struct {
 	*Class
-	fields map[string]interface{}
 }
 
 func (e *Entity) Read(br bit.Reader) error {

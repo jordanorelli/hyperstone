@@ -14,11 +14,15 @@ type Class struct {
 	// all other entities for this class use this instance as a prototype
 	baseline *Entity
 
+	// maps field names back to their indexes. Entities use this to access
+	// their own fields by name instead of by slot.
+	fieldNames map[string]int
+
 	fp *fieldPath
 }
 
 func (c *Class) New() *Entity {
-	return &Entity{Class: c, fields: make(map[string]interface{}, len(c.Fields))}
+	return &Entity{Class: c}
 }
 
 func (c Class) String() string {
