@@ -39,7 +39,21 @@ func (s selection) fill(dest slotted, br bit.Reader) error {
 		Debug.Printf("%v -> %v", old, val)
 		return nil
 	default:
-		return fmt.Errorf("child selections aren't done yet")
+		Debug.Printf("fill child selection...")
+		inner := dest.getSlotValue(s.vals[0])
+		inner_s, ok := inner.(slotted)
+		if !ok {
+			return fmt.Errorf("child selection refers to a slot that doesn't contain a slotted value")
+		}
+		return s.next().fill(inner_s, br)
+	}
+}
+
+func (s selection) next() selection {
+	// rofl this is weird
+	return selection{
+		count: s.count - 1,
+		vals:  [6]int{s.vals[1], s.vals[2], s.vals[3], s.vals[4], s.vals[5], 0},
 	}
 }
 

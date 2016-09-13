@@ -60,8 +60,10 @@ func ieeeFloat32Decoder(br bit.Reader) interface{} {
 
 func entityDecoder(c *Class) decoder {
 	return func(br bit.Reader) interface{} {
-		// I have no idea what this bit means.
-		return bit.ReadBool(br)
+		if bit.ReadBool(br) {
+			return c.New(-1)
+		}
+		return nil
 	}
 }
 
