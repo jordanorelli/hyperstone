@@ -18,42 +18,36 @@ type selection struct {
 
 func (s selection) path() []int { return s.vals[:s.count] }
 
-func (s selection) fill(dest slotted, br bit.Reader) error {
+func (s selection) fill(offset int, dest slotted, br bit.Reader) error {
+	slot := s.vals[offset]
+
 	Debug.Printf("fill selection %v", s)
-	switch s.count {
+	switch s.count - offset {
 	case 0:
 		panic("selection makes no sense")
 	case 1:
-		fn := dest.getSlotDecoder(s.vals[0])
+		fn := dest.getSlotDecoder(slot)
 		if fn == nil {
 			switch v := dest.(type) {
 			case *Entity:
-				Info.Fatalf("%v entity has no decoder for slot %d (%v)", v.Class, s.vals[0], v.Class.Fields[s.vals[0]])
+				Info.Fatalf("%v entity has no decoder for slot %d (%v)", v.Class, slot, v.Class.Fields[slot])
 			default:
-				Info.Fatalf("slotted value %v has no decoder for slot %d", dest, s.vals[0])
+				Info.Fatalf("slotted value %v has no decoder for slot %d", dest, slot)
 			}
 		}
 		val := fn(br)
-		old := dest.getSlotValue(s.vals[0])
-		dest.setSlotValue(s.vals[0], val)
+		old := dest.getSlotValue(slot)
+		dest.setSlotValue(slot, val)
 		Debug.Printf("%v -> %v", old, val)
 		return nil
 	default:
 		Debug.Printf("fill child selection...")
-		inner := dest.getSlotValue(s.vals[0])
-		inner_s, ok := inner.(slotted)
+		v := dest.getSlotValue(slot)
+		vs, ok := v.(slotted)
 		if !ok {
 			return fmt.Errorf("child selection refers to a slot that doesn't contain a slotted value")
 		}
-		return s.next().fill(inner_s, br)
-	}
-}
-
-func (s selection) next() selection {
-	// rofl this is weird
-	return selection{
-		count: s.count - 1,
-		vals:  [6]int{s.vals[1], s.vals[2], s.vals[3], s.vals[4], s.vals[5], 0},
+		return s.fill(offset+1, vs, br)
 	}
 }
 

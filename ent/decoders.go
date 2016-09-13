@@ -23,10 +23,13 @@ func newFieldDecoder(n *Namespace, f *Field) decoder {
 		return decodeVarInt64
 	case "int8", "int16", "int32", "int64":
 		return decodeZigZag
-	case "float32":
+	case "CNetworkedQuantizedFloat", "float32":
 		return floatDecoder(f)
 	case "Vector":
 		return vectorDecoder(f)
+	case "CGameSceneNodeHandle":
+		// ehhh maybe no?
+		return decodeVarInt32
 	}
 
 	// the field is itself an entity contained within the outer entity.
@@ -45,18 +48,6 @@ func decodeBool(br bit.Reader) interface{}     { return bit.ReadBool(br) }
 func decodeVarInt32(br bit.Reader) interface{} { return bit.ReadVarInt32(br) }
 func decodeVarInt64(br bit.Reader) interface{} { return bit.ReadVarInt(br) }
 func decodeZigZag(br bit.Reader) interface{}   { return bit.ReadZigZag(br) }
-
-func floatDecoder(f *Field) decoder {
-	if f.bits <= 0 || f.bits >= 32 {
-		return ieeeFloat32Decoder
-	}
-	return nil
-}
-
-// reads an IEEE 754 binary float value off of the stream
-func ieeeFloat32Decoder(br bit.Reader) interface{} {
-	return math.Float32frombits(uint32(br.ReadBits(32)))
-}
 
 func entityDecoder(c *Class) decoder {
 	return func(br bit.Reader) interface{} {

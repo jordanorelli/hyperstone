@@ -17,7 +17,7 @@ func fillSlots(dest slotted, sr *selectionReader, br bit.Reader) error {
 	}
 
 	for _, s := range selections {
-		if err := s.fill(dest, br); err != nil {
+		if err := s.fill(0, dest, br); err != nil {
 			return err
 		}
 	}

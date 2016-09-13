@@ -8,19 +8,19 @@ import (
 )
 
 type Field struct {
-	_type             Symbol   // type of data held by the field
-	name              Symbol   // name of the field
-	sendNode          Symbol   // not sure what this is
-	bits              int      // number of bits used to encode field?
-	low               *float32 // lower limit of field values
-	high              *float32 // upper limit of field values
-	flags             int      // dunno what these flags do
-	serializer        *Symbol  // class on which the field was defined
-	serializerVersion *int32   // version of the class on which the field was defined
-	class             *Class   // source class on which the field was originally defined
-	encoder           *Symbol  // binary encoder, named explicitly in protobuf
-	decoder                    // decodes field values from a bit stream
-	isTemplate        bool     // whether or not the field is a template type
+	_type             Symbol  // type of data held by the field
+	name              Symbol  // name of the field
+	sendNode          Symbol  // not sure what this is
+	bits              uint    // number of bits used to encode field?
+	low               float32 // lower limit of field values
+	high              float32 // upper limit of field values
+	flags             int     // dunno what these flags do
+	serializer        *Symbol // class on which the field was defined
+	serializerVersion *int32  // version of the class on which the field was defined
+	class             *Class  // source class on which the field was originally defined
+	encoder           *Symbol // binary encoder, named explicitly in protobuf
+	decoder                   // decodes field values from a bit stream
+	isTemplate        bool    // whether or not the field is a template type
 	templateType      string
 	elemType          string
 }
@@ -34,12 +34,8 @@ func (f Field) String() string {
 	if f.flags > 0 {
 		fmt.Fprintf(&buf, " flags: %d", f.flags)
 	}
-	if f.low != nil {
-		fmt.Fprintf(&buf, " low: %f", *f.low)
-	}
-	if f.high != nil {
-		fmt.Fprintf(&buf, " high: %f", *f.high)
-	}
+	fmt.Fprintf(&buf, " low: %f", f.low)
+	fmt.Fprintf(&buf, " high: %f", f.high)
 	if f.serializer != nil {
 		fmt.Fprintf(&buf, " serializer: %s", *f.serializer)
 	}
@@ -56,10 +52,10 @@ func (f Field) String() string {
 func (f *Field) fromProto(flat *dota.ProtoFlattenedSerializerFieldT, t *SymbolTable) {
 	f._type = t.Symbol(int(flat.GetVarTypeSym()))
 	f.name = t.Symbol(int(flat.GetVarNameSym()))
-	f.bits = int(flat.GetBitCount())
+	f.bits = uint(flat.GetBitCount())
 	f.flags = int(flat.GetEncodeFlags())
-	f.low = flat.LowValue
-	f.high = flat.HighValue
+	f.low = flat.GetLowValue()
+	f.high = flat.GetHighValue()
 
 	if flat.FieldSerializerNameSym == nil {
 		f.serializer = nil
