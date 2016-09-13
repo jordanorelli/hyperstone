@@ -14,7 +14,9 @@ type decoder func(bit.Reader) interface{}
 func newFieldDecoder(n *Namespace, f *Field) decoder {
 	Debug.Printf("new decoder: type: %s name: %s sendNode: %s\n\tbits: %d low: %v high: %v\n\tflags: %d serializer: %v serializerVersion: %v\n\tclass: %v encoder: %v", f._type, f.name, f.sendNode, f.bits, f.low, f.high, f.flags, f.serializer, f.serializerVersion, f.class, f.encoder)
 
-	switch f._type.String() {
+	typeName := f._type.String()
+
+	switch typeName {
 	case "bool":
 		return decodeBool
 	case "uint8", "uint16", "uint32", "uint64", "Color":
@@ -33,7 +35,7 @@ func newFieldDecoder(n *Namespace, f *Field) decoder {
 	}
 
 	switch {
-	case strings.HasPrefix(f._type.String(), "CHandle"):
+	case strings.HasPrefix(typeName, "CHandle"):
 		return decodeVarInt32
 	}
 	return nil

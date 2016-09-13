@@ -36,7 +36,7 @@ const e_limit = 2048
 //   be used on the client.
 type Dict struct {
 	*Namespace
-	entities []Entity
+	entities []*Entity
 	br       *bit.BufReader
 	sr       *selectionReader
 
@@ -49,7 +49,7 @@ type Dict struct {
 func NewDict(sd *stbl.Dict) *Dict {
 	d := &Dict{
 		Namespace: new(Namespace),
-		entities:  make([]Entity, e_limit),
+		entities:  make([]*Entity, e_limit),
 		br:        new(bit.BufReader),
 		sr:        new(selectionReader),
 		base:      sd.TableForName("instancebaseline"),
@@ -65,7 +65,7 @@ func (d *Dict) createEntity(id int) error {
 	if len(d.Namespace.classes) == 0 {
 		return fmt.Errorf("unable to create entity %d: namespace has no classes", id)
 	}
-	d.br.ReadBits(17) // ???
+	serial := int(d.br.ReadBits(17))
 	classV := int(bit.ReadVarInt(d.br))
 	className := d.classIds[classId]
 	class := d.Class(className, classV)
@@ -73,9 +73,9 @@ func (d *Dict) createEntity(id int) error {
 		return fmt.Errorf("unable to create entity %d: no class found for class name %s, version %d", className, classV)
 	}
 	Debug.Printf("create entity id: %d classId: %d className: %v class: %v\n", id, classId, className, class)
-	e := class.New()
-	e.Read(d.br, d.sr)
-	return nil
+	e := class.New(serial)
+	d.entities[id] = e
+	return fillSlots(e, d.sr, d.br)
 }
 
 func (d *Dict) getEntity(id int) *Entity {
@@ -83,7 +83,7 @@ func (d *Dict) getEntity(id int) *Entity {
 		Debug.Printf("edict refused getEntity request for invalid id %d", id)
 		return nil
 	}
-	return &d.entities[id]
+	return d.entities[id]
 }
 
 func (d *Dict) updateEntity(id int) error {
@@ -92,7 +92,7 @@ func (d *Dict) updateEntity(id int) error {
 	if e == nil {
 		return fmt.Errorf("update entity %d refused: no such entity", id)
 	}
-	e.Read(d.br, d.sr)
+	// e.Read(d.br, d.sr)
 	return nil
 }
 
@@ -101,7 +101,7 @@ func (d *Dict) deleteEntity(id int) error {
 	if id < 0 || id >= e_limit {
 		return fmt.Errorf("delete entity %d refused: no such entity", id)
 	}
-	d.entities[id] = Entity{}
+	d.entities[id] = nil
 	return nil
 }
 
@@ -190,7 +190,7 @@ func (d *Dict) syncBaselines() {
 		}
 
 		if c.baseline == nil {
-			c.baseline = c.New()
+			c.baseline = c.New(-1)
 		}
 
 		if e.Value == nil || len(e.Value) == 0 {
@@ -200,8 +200,8 @@ func (d *Dict) syncBaselines() {
 
 		d.br.SetSource(e.Value)
 		Debug.Printf("syncBaselines has new baseline for class %v", c)
-		if err := c.baseline.Read(d.br, d.sr); err != nil {
-			Debug.Printf("syncBaselines failed to read a baseline: %v", err)
+		if err := fillSlots(c.baseline, d.sr, d.br); err != nil {
+			Debug.Printf("syncBaselines failed to fill a baseline: %v", err)
 			continue
 		}
 	}

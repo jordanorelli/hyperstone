@@ -20,6 +20,9 @@ type Field struct {
 	class             *Class   // source class on which the field was originally defined
 	encoder           *Symbol  // binary encoder, named explicitly in protobuf
 	decoder                    // decodes field values from a bit stream
+	isTemplate        bool     // whether or not the field is a template type
+	templateType      string
+	elemType          string
 }
 
 func (f Field) String() string {

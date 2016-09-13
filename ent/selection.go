@@ -18,6 +18,31 @@ type selection struct {
 
 func (s selection) path() []int { return s.vals[:s.count] }
 
+func (s selection) fill(dest slotted, br bit.Reader) error {
+	Debug.Printf("fill selection %v", s)
+	switch s.count {
+	case 0:
+		panic("selection makes no sense")
+	case 1:
+		fn := dest.getSlotDecoder(s.vals[0])
+		if fn == nil {
+			switch v := dest.(type) {
+			case *Entity:
+				Info.Fatalf("%v entity has no decoder for slot %d (%v)", v.Class, s.vals[0], v.Class.Fields[s.vals[0]])
+			default:
+				Info.Fatalf("slotted value %v has no decoder for slot %d", dest, s.vals[0])
+			}
+		}
+		val := fn(br)
+		old := dest.getSlotValue(s.vals[0])
+		dest.setSlotValue(s.vals[0], val)
+		Debug.Printf("%v -> %v", old, val)
+		return nil
+	default:
+		return fmt.Errorf("child selections aren't done yet")
+	}
+}
+
 // selectionReader reads a set of field selections off of the wire. the
 // selections are represented as arrays of slot positions to be traversed in
 // order to select an entity slot.
@@ -33,24 +58,22 @@ type selectionReader struct {
 	all [1024]selection
 }
 
-func (r *selectionReader) read(br bit.Reader, n node) error {
+func (r *selectionReader) readSelections(br bit.Reader, n node) ([]selection, error) {
 	r.cur.count = 1
 	r.cur.vals[0] = -1
 	r.count = 0
 	for fn := walk(n, br); fn != nil; fn = walk(n, br) {
 		if err := br.Err(); err != nil {
-			return fmt.Errorf("unable to read selection: bit reader error: %v", err)
+			return nil, fmt.Errorf("unable to read selection: bit reader error: %v", err)
 		}
 		fn(r, br)
 		r.keep()
 	}
 	if err := br.Err(); err != nil {
-		return fmt.Errorf("unable to read selection: bit reader error: %v", err)
+		return nil, fmt.Errorf("unable to read selection: bit reader error: %v", err)
 	}
-	return nil
+	return r.all[:r.count], nil
 }
-
-func (r *selectionReader) selections() []selection { return r.all[:r.count] }
 
 // adds i to the current selection
 func (r *selectionReader) add(i int) {

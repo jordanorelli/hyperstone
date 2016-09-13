@@ -19,8 +19,12 @@ type Class struct {
 	fieldNames map[string]int
 }
 
-func (c *Class) New() *Entity {
-	return &Entity{Class: c}
+func (c *Class) New(serial int) *Entity {
+	return &Entity{
+		Class:  c,
+		slots:  make([]interface{}, len(c.Fields)),
+		serial: serial,
+	}
 }
 
 func (c Class) String() string {
