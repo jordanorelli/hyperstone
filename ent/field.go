@@ -14,7 +14,7 @@ type Field struct {
 	bits              uint    // number of bits used to encode field?
 	low               float32 // lower limit of field values
 	high              float32 // upper limit of field values
-	flags             int     // dunno what these flags do
+	flags             int     // used by float decoder
 	serializer        *Symbol // class on which the field was defined
 	serializerVersion *int32  // version of the class on which the field was defined
 	class             *Class  // source class on which the field was originally defined

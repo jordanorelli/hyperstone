@@ -75,7 +75,7 @@ func (d *Dict) createEntity(id int) error {
 	Debug.Printf("create entity id: %d classId: %d className: %v class: %v\n", id, classId, className, class)
 	e := class.New(serial)
 	d.entities[id] = e
-	return fillSlots(e, d.sr, d.br)
+	return fillSlots(e, class.Name.String(), d.sr, d.br)
 }
 
 func (d *Dict) getEntity(id int) *Entity {
@@ -200,7 +200,7 @@ func (d *Dict) syncBaselines() {
 
 		d.br.SetSource(e.Value)
 		Debug.Printf("syncBaselines has new baseline for class %v", c)
-		if err := fillSlots(c.baseline, d.sr, d.br); err != nil {
+		if err := fillSlots(c.baseline, c.Name.String(), d.sr, d.br); err != nil {
 			Debug.Printf("syncBaselines failed to fill a baseline: %v", err)
 			continue
 		}

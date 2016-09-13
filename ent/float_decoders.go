@@ -7,10 +7,9 @@ import (
 )
 
 const (
-	f_round_down = 1 << iota
-	f_round_up
-	f_encode_zero
-	f_encode_ints
+	f_min = 1 << iota
+	f_max
+	f_center
 )
 
 func floatDecoder(f *Field) decoder {
@@ -24,13 +23,22 @@ func floatDecoder(f *Field) decoder {
 		panic("quantization rules make no sense")
 	}
 
+	bits := f.bits
+	low := f.low
+	high := f.high
+
 	flags := f.flags
 
+	// there's a flag that's -8 and i don't know what to do with it. I'm just
+	// gonna mask away everything except the three least significant bits and
+	// pray for the best.
+	flags = flags & 7
+
 	// number of input steps
-	// steps := int(1<<f.bits - 1)
+	steps := int(1<<f.bits - 1)
 
 	// keep the inverse to mult instead of divide later
-	// inv_steps := 1.0 / float32(steps)
+	inv_steps := 1.0 / float32(steps)
 
 	// total range of values
 	span := f.high - f.low
@@ -39,27 +47,36 @@ func floatDecoder(f *Field) decoder {
 		panic("quantization span is backwards")
 	}
 
-	if flags&f_round_down&f_round_up > 0 {
-		panic("how can you round down and up at the same time")
+	// output width of each step
+	step_width := span * inv_steps
+
+	var special *float32
+	switch {
+	case flags&f_min > 0:
+		special = new(float32)
+		*special = low
+	case flags&f_max > 0:
+		special = new(float32)
+		*special = high
+	case flags&f_center > 0:
+		special = new(float32)
+		middle := (high + low) * 0.5
+		// if we're within a step of zero just return zero.
+		if middle > 0 && middle-step_width < 0 || middle < 0 && middle+step_width > 0 {
+			middle = 0
+		}
+		*special = middle
 	}
 
-	// output width of each step
-	// step_width := span * inv_steps
-
 	return func(br bit.Reader) interface{} {
-		if flags&f_round_down > 0 {
-			return nil
+		if special != nil && bit.ReadBool(br) {
+			Debug.Printf("decode float type: %s low: %f high: %f bits: %d steps: %d span: %f flags: %d special: %v", f._type.String(), low, high, bits, steps, span, flags, *special)
+			return *special
 		}
-		if flags&f_round_up > 0 {
-			panic("round up flag not done yet")
-		}
-		if flags&f_encode_zero > 0 {
-			panic("encode zero flag not done yet")
-		}
-		if flags&f_encode_ints > 0 {
-			panic("encode ints flag not done yet")
-		}
-		return nil
+		u := br.ReadBits(bits)
+		out := low + float32(u)*inv_steps*span
+		Debug.Printf("decode float type: %s low: %f high: %f bits: %d bitVal: %d steps: %d span: %f flags: %d output: %v", f._type.String(), low, high, bits, u, steps, span, flags, out)
+		return out
 	}
 }
 

@@ -5,19 +5,21 @@ import (
 )
 
 type slotted interface {
-	getSlotValue(int) interface{}
+	slotName(int) string
+	slotValue(int) interface{}
+	slotType(int) string
+	slotDecoder(int) decoder
 	setSlotValue(int, interface{})
-	getSlotDecoder(int) decoder
 }
 
-func fillSlots(dest slotted, sr *selectionReader, br bit.Reader) error {
+func fillSlots(dest slotted, displayPath string, sr *selectionReader, br bit.Reader) error {
 	selections, err := sr.readSelections(br, htree)
 	if err != nil {
 		return err
 	}
 
 	for _, s := range selections {
-		if err := s.fill(0, dest, br); err != nil {
+		if err := s.fill(0, displayPath, dest, br); err != nil {
 			return err
 		}
 	}
