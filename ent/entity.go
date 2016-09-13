@@ -40,6 +40,7 @@ func (e *Entity) Read(br bit.Reader, sr *selectionReader) error {
 			}
 		default:
 			Debug.Printf("child selection: %v", s.path())
+			return fmt.Errorf("child selections aren't done yet")
 		}
 	}
 	return nil

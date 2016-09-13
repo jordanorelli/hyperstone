@@ -106,6 +106,14 @@ func ReadString(r Reader) string {
 	return buf.String()
 }
 
+func ReadZigZag(r Reader) int64 {
+	u := ReadVarInt(r)
+	if u&1 > 0 {
+		return ^int64(u >> 1)
+	}
+	return int64(u >> 1)
+}
+
 // reads a ZigZag-encoded 32 bit signed integer
 func ReadZigZag32(r Reader) int32 {
 	u := ReadVarInt32(r)

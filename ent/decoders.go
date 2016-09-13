@@ -17,10 +17,12 @@ func newFieldDecoder(n *Namespace, f *Field) decoder {
 	switch f._type.String() {
 	case "bool":
 		return decodeBool
-	case "float32":
-		return floatDecoder(f)
 	case "uint8", "uint16", "uint32", "uint64", "Color":
 		return decodeVarInt64
+	case "int8", "int16", "int32", "int64":
+		return decodeZigZag
+	case "float32":
+		return floatDecoder(f)
 	case "Vector":
 		return vectorDecoder(f)
 	}
@@ -40,6 +42,7 @@ func newFieldDecoder(n *Namespace, f *Field) decoder {
 func decodeBool(br bit.Reader) interface{}     { return bit.ReadBool(br) }
 func decodeVarInt32(br bit.Reader) interface{} { return bit.ReadVarInt32(br) }
 func decodeVarInt64(br bit.Reader) interface{} { return bit.ReadVarInt(br) }
+func decodeZigZag(br bit.Reader) interface{}   { return bit.ReadZigZag(br) }
 
 func floatDecoder(f *Field) decoder {
 	if f.bits <= 0 || f.bits >= 32 {
