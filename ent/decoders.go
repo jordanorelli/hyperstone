@@ -35,6 +35,8 @@ func newFieldDecoder(n *Namespace, f *Field) decoder {
 		return decodeVarInt32
 	case "CUtlStringToken":
 		return symbolDecoder(n)
+	case "CUtlSymbolLarge", "char":
+		return decodeString
 	}
 
 	// the field is itself an entity contained within the outer entity.
@@ -71,6 +73,7 @@ func decodeBool(br bit.Reader) interface{}     { return bit.ReadBool(br) }
 func decodeVarInt32(br bit.Reader) interface{} { return bit.ReadVarInt32(br) }
 func decodeVarInt64(br bit.Reader) interface{} { return bit.ReadVarInt(br) }
 func decodeZigZag(br bit.Reader) interface{}   { return bit.ReadZigZag(br) }
+func decodeString(br bit.Reader) interface{}   { return bit.ReadString(br) }
 
 type color struct{ r, g, b, a uint8 }
 
