@@ -37,6 +37,8 @@ func newFieldDecoder(n *Namespace, f *Field) decoder {
 		return entityDecoder(f.class)
 	}
 
+	Debug.Printf("type spec: %v", parseTypeName(n, typeName))
+
 	switch {
 	case strings.HasPrefix(typeName, "CHandle"):
 		return decodeVarInt32
