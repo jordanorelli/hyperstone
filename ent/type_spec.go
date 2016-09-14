@@ -11,6 +11,7 @@ const (
 	t_object          // c++ object type that is not a known element class
 	t_array           // c++ array type
 	t_template        // c++ template type
+	t_pointer         // c++ pointer
 )
 
 // constant identifiers
@@ -37,6 +38,13 @@ func parseTypeName(n *Namespace, s string) typeSpec {
 
 	if n.HasClass(s) {
 		t.kind = t_element
+		return t
+	}
+
+	if strings.HasSuffix(s, "*") {
+		t.kind = t_pointer
+		t.member = new(typeSpec)
+		*t.member = parseTypeName(n, s[:len(s)-2])
 		return t
 	}
 

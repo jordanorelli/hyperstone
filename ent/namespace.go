@@ -107,6 +107,32 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) error {
 			}
 		}
 
+		// for some fields, we want to initialize a zero value on the baseline
+		// instance. specifically, we do this for arrays so that we can't try
+		// to index into nil.
+		f.typeSpec = parseTypeName(n, f._type.String())
+		if f.isContainer() {
+			mf := f.memberField()
+			fn := newFieldDecoder(n, mf)
+			if f.typeSpec.kind == t_array {
+				f.initializer = func() interface{} {
+					return &array{
+						slots:     make([]interface{}, f.typeSpec.size),
+						_slotType: mf._type.String(),
+						decoder:   fn,
+					}
+				}
+			} else if f.typeSpec.kind == t_template && f.typeSpec.template == "CUtlVector" {
+				f.initializer = func() interface{} {
+					return &cutlVector{
+						slots:     make([]interface{}, f.typeSpec.size),
+						_slotType: mf._type.String(),
+						decoder:   fn,
+					}
+				}
+			}
+		}
+
 		// we also wait until after we've discovered all of the classes to
 		// build the field decoder functions, because some fields are
 		// themselves entities.

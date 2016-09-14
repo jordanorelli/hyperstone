@@ -44,26 +44,27 @@ func newFieldDecoder(n *Namespace, f *Field) decoder {
 
 	// for compound types such as handles, vectors (in the c++ std::vector
 	// sense), and arrays
-	ts := parseTypeName(n, typeName)
-	switch ts.kind {
+	switch f.typeSpec.kind {
 	case t_element:
-		Debug.Printf("weird typespec: we shouldn't have elements here: %v", ts)
+		Debug.Printf("weird typespec: we shouldn't have elements here: %v", f.typeSpec)
 		return func(bit.Reader) interface{} {
-			Info.Fatalf("unable to decode element of type: %v", ts.name)
+			Info.Fatalf("unable to decode element of type: %v", f.typeSpec.name)
 			return nil
 		}
 	case t_object:
 		return func(br bit.Reader) interface{} {
-			Debug.Printf("unable to decode object of type: %v", ts.name)
+			Debug.Printf("unable to decode object of type: %v", f.typeSpec.name)
 			return decodeVarInt32(br)
 		}
 	case t_array:
-		return arrayDecoder(n, f, ts)
+		return arrayDecoder(n, f)
 	case t_template:
-		return templateDecoder(f, ts)
+		return templateDecoder(f)
+	case t_pointer:
+		return decodeBool
 	}
 
-	return nil
+	panic("fart")
 }
 
 func decodeBool(br bit.Reader) interface{}     { return bit.ReadBool(br) }
@@ -85,10 +86,8 @@ func decodeColor(br bit.Reader) interface{} {
 
 func entityDecoder(c *Class) decoder {
 	return func(br bit.Reader) interface{} {
-		if bit.ReadBool(br) {
-			return c.New(-1)
-		}
-		return nil
+		bit.ReadBool(br) // what does this do
+		return c.New(-1, false)
 	}
 }
 
@@ -201,18 +200,28 @@ func qangleDecoder(f *Field) decoder {
 	}
 }
 
-func arrayDecoder(n *Namespace, f *Field, ts typeSpec) decoder {
-	return decodeVarInt32
+func arrayDecoder(n *Namespace, f *Field) decoder {
+	return func(br bit.Reader) interface{} {
+		Debug.Printf("dunno what this int32 val does in array decoder: %d", bit.ReadVarInt32(br))
+		if f.initializer != nil {
+			return f.initializer()
+		}
+		return nil
+	}
 }
 
-func templateDecoder(f *Field, ts typeSpec) decoder {
-	switch ts.template {
+func templateDecoder(f *Field) decoder {
+	switch f.typeSpec.template {
 	case "CHandle":
 		return decodeVarInt32
 	case "CStrongHandle":
 		return decodeVarInt64
 	case "CUtlVector":
-		return decodeVarInt32
+		return func(br bit.Reader) interface{} {
+			v := decodeVarInt32(br)
+			Debug.Printf("dunno what this varint is for in the cutlvector decoder: %v", v)
+			return v
+		}
 	}
 	return nil
 }

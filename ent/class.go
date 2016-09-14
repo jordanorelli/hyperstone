@@ -19,12 +19,17 @@ type Class struct {
 	fieldNames map[string]int
 }
 
-func (c *Class) New(serial int) *Entity {
-	return &Entity{
-		Class:  c,
-		slots:  make([]interface{}, len(c.Fields)),
-		serial: serial,
+func (c *Class) New(serial int, baseline bool) *Entity {
+	e := &Entity{
+		Class:      c,
+		slots:      make([]interface{}, len(c.Fields)),
+		serial:     serial,
+		isBaseline: baseline,
 	}
+	for slot := range e.slots {
+		e.slots[slot] = c.Fields[slot].initializer()
+	}
+	return e
 }
 
 func (c Class) String() string {

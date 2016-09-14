@@ -21,22 +21,24 @@ func (s selection) path() []int    { return s.vals[:s.count] }
 
 func (s selection) fill(offset int, displayPath string, dest slotted, br bit.Reader) error {
 	slot := s.vals[offset]
-	switch s.count - offset {
-	case 0:
+	if s.count-offset <= 0 {
 		panic("selection makes no sense")
+	}
+	switch s.count - offset {
 	case 1:
 		fn := dest.slotDecoder(slot)
 		if fn == nil {
-			switch v := dest.(type) {
+			switch dest.(type) {
 			case *Entity:
 				Debug.Printf("%s %s (%s)", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot))
-				Info.Fatalf("%v entity has no decoder for slot %d (%v)", v.Class, slot, v.Class.Fields[slot])
+				return nil
+				// Info.Fatalf("%v entity has no decoder for slot %d (%v)", v.Class, slot, v.Class.Fields[slot])
 			default:
-				Info.Fatalf("slotted value %v has no decoder for slot %d", dest, slot)
+				Info.Printf("slotted value %v has no decoder for slot %d", dest, slot)
+				return nil
 			}
 		}
 		old := dest.slotValue(slot)
-		Debug.Printf("%s %s (%s): %v", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), old)
 		val := fn(br)
 		dest.setSlotValue(slot, val)
 		Debug.Printf("%s %s (%s): %v -> %v", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), old, val)
@@ -45,7 +47,7 @@ func (s selection) fill(offset int, displayPath string, dest slotted, br bit.Rea
 		v := dest.slotValue(slot)
 		vs, ok := v.(slotted)
 		if !ok {
-			Info.Fatalf("child selection %s at offset %d refers to a slot (%d: %s) that contains a non-slotted type: %s", s, offset, slot, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot))
+			Info.Printf("child selection %s at offset %d refers to a slot (%d: %s) that contains a non-slotted type: %s with value: %v", s, offset, slot, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), v)
 			return fmt.Errorf("child selection refers to a slot that doesn't contain a slotted value")
 		}
 		return s.fill(offset+1, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), vs, br)

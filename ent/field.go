@@ -8,7 +8,8 @@ import (
 )
 
 type Field struct {
-	_type             Symbol  // type of data held by the field
+	_type             Symbol // type of data held by the field
+	typeSpec          typeSpec
 	name              Symbol  // name of the field
 	sendNode          Symbol  // not sure what this is
 	bits              uint    // number of bits used to encode field?
@@ -20,7 +21,8 @@ type Field struct {
 	class             *Class  // source class on which the field was originally defined
 	encoder           *Symbol // binary encoder, named explicitly in protobuf
 	decoder                   // decodes field values from a bit stream
-	isTemplate        bool    // whether or not the field is a template type
+	initializer       func() interface{}
+	isTemplate        bool // whether or not the field is a template type
 	templateType      string
 	elemType          string
 }
@@ -56,6 +58,7 @@ func (f *Field) fromProto(flat *dota.ProtoFlattenedSerializerFieldT, t *SymbolTa
 	f.flags = int(flat.GetEncodeFlags())
 	f.low = flat.GetLowValue()
 	f.high = flat.GetHighValue()
+	f.initializer = nilInitializer
 
 	if flat.FieldSerializerNameSym == nil {
 		f.serializer = nil
@@ -69,3 +72,30 @@ func (f *Field) fromProto(flat *dota.ProtoFlattenedSerializerFieldT, t *SymbolTa
 	f.sendNode = t.Symbol(int(*flat.SendNodeSym))
 	Debug.Printf("new field: %v", f)
 }
+
+// creates a new field which is a sort of virtual field that represents what a
+// field woudl look like if we had one for a container field's elements.
+// honestly this is a really shitty hack it just seems easier than rewriting
+// the newFieldDecoder logic.
+func (f *Field) memberField() *Field {
+	mf := new(Field)
+	*mf = *f
+	mf.typeSpec = *f.typeSpec.member
+	// yeahhhh
+	mf._type = Symbol{0, &SymbolTable{mf.typeSpec.name}}
+	return mf
+}
+
+func (f *Field) isContainer() bool {
+	if f.typeSpec.kind == t_array {
+		return true
+	}
+	if f.typeSpec.kind == t_template {
+		if f.typeSpec.template == "CUtlVector" {
+			return true
+		}
+	}
+	return false
+}
+
+func nilInitializer() interface{} { return nil }

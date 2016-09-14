@@ -72,7 +72,7 @@ func (d *Dict) createEntity(id int) error {
 	if class == nil {
 		return fmt.Errorf("unable to create entity %d: no class found for class name %s, version %d", className, classV)
 	}
-	e := class.New(serial)
+	e := class.New(serial, false)
 	d.entities[id] = e
 	Debug.Printf("create entity id: %d serial: %d classId: %d className: %v class: %v\n", id, serial, classId, className, class)
 	return fillSlots(e, class.Name.String(), d.sr, d.br)
@@ -190,7 +190,7 @@ func (d *Dict) syncBaselines() {
 		}
 
 		if c.baseline == nil {
-			c.baseline = c.New(-1)
+			c.baseline = c.New(-1, true)
 		}
 
 		if e.Value == nil || len(e.Value) == 0 {

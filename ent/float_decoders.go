@@ -86,7 +86,5 @@ func floatDecoder(f *Field) decoder {
 
 // reads an IEEE 754 binary float value off of the stream
 func ieeeFloat32Decoder(br bit.Reader) interface{} {
-	u := uint32(br.ReadBits(32))
-	Debug.Printf("ieee float32 decode bits: %d", u)
-	return math.Float32frombits(u)
+	return math.Float32frombits(uint32(br.ReadBits(32)))
 }
