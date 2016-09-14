@@ -7,7 +7,13 @@ import (
 // normalized values are represented with 11 significant bits. we pre-compute a
 // divisor so that we can use a multiply instruction and avoid using
 // floating-point division during the lifecycle of the program.
-var normal_divisor = float32(1.0) / float32(2047)
+const normal_divisor = float32(1.0) / float32(2047)
+
+const (
+	coord_ibits = 14 // number of integer bits in a coord value
+	coord_fbits = 5  // number of fractional bits in a coord value
+	coord_res   = 1.0 / 1 << coord_fbits
+)
 
 // ReadUbitVar reads a prefixed uint value. A prefix is 2 bits wide, followed
 // by the 4 least-significant bits, then a variable number of most-significant
@@ -134,4 +140,30 @@ func ReadNormal(r Reader) float32 {
 	} else {
 		return -float32(r.ReadBits(11)) * normal_divisor
 	}
+}
+
+// an angle is just a quantized float between 0 and 360
+func ReadAngle(r Reader, bits uint) float32 {
+	return float32(r.ReadBits(bits)) * 360.0 / float32(uint(1)<<bits-1)
+}
+
+func ReadCoord(r Reader) float32 {
+	i := ReadBool(r)
+	f := ReadBool(r)
+	if !(i || f) {
+		return 0
+	}
+
+	neg := ReadBool(r)
+	var v float32
+	if i {
+		v = float32(r.ReadBits(coord_ibits) + 1)
+	}
+	if f {
+		v += float32(r.ReadBits(coord_fbits)) * coord_res
+	}
+	if neg {
+		return -v
+	}
+	return v
 }

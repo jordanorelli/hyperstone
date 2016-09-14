@@ -13,6 +13,10 @@ const (
 )
 
 func floatDecoder(f *Field) decoder {
+	if f.encoder != nil && f.encoder.String() == "coord" {
+		return nil
+	}
+
 	if f.bits <= 0 || f.bits >= 32 {
 		return ieeeFloat32Decoder
 	}
@@ -82,5 +86,7 @@ func floatDecoder(f *Field) decoder {
 
 // reads an IEEE 754 binary float value off of the stream
 func ieeeFloat32Decoder(br bit.Reader) interface{} {
-	return math.Float32frombits(uint32(br.ReadBits(32)))
+	u := uint32(br.ReadBits(32))
+	Debug.Printf("ieee float32 decode bits: %d", u)
+	return math.Float32frombits(u)
 }

@@ -72,9 +72,9 @@ func (d *Dict) createEntity(id int) error {
 	if class == nil {
 		return fmt.Errorf("unable to create entity %d: no class found for class name %s, version %d", className, classV)
 	}
-	Debug.Printf("create entity id: %d classId: %d className: %v class: %v\n", id, classId, className, class)
 	e := class.New(serial)
 	d.entities[id] = e
+	Debug.Printf("create entity id: %d serial: %d classId: %d className: %v class: %v\n", id, serial, classId, className, class)
 	return fillSlots(e, class.Name.String(), d.sr, d.br)
 }
 

@@ -1,7 +1,6 @@
 package ent
 
 import (
-	"math"
 	"strings"
 
 	"github.com/jordanorelli/hyperstone/bit"
@@ -19,14 +18,18 @@ func newFieldDecoder(n *Namespace, f *Field) decoder {
 	switch typeName {
 	case "bool":
 		return decodeBool
-	case "uint8", "uint16", "uint32", "uint64", "Color":
+	case "uint8", "uint16", "uint32", "uint64":
 		return decodeVarInt64
+	case "Color":
+		return decodeColor
 	case "int8", "int16", "int32", "int64":
 		return decodeZigZag
 	case "CNetworkedQuantizedFloat", "float32":
 		return floatDecoder(f)
 	case "Vector":
 		return vectorDecoder(f)
+	case "QAngle":
+		return qangleDecoder(f)
 	case "CGameSceneNodeHandle":
 		// ehhh maybe no?
 		return decodeVarInt32
@@ -50,6 +53,18 @@ func decodeBool(br bit.Reader) interface{}     { return bit.ReadBool(br) }
 func decodeVarInt32(br bit.Reader) interface{} { return bit.ReadVarInt32(br) }
 func decodeVarInt64(br bit.Reader) interface{} { return bit.ReadVarInt(br) }
 func decodeZigZag(br bit.Reader) interface{}   { return bit.ReadZigZag(br) }
+
+type color struct{ r, g, b, a uint8 }
+
+func decodeColor(br bit.Reader) interface{} {
+	u := bit.ReadVarInt(br)
+	return color{
+		r: uint8(u & 0xff000000),
+		g: uint8(u & 0x00ff0000),
+		b: uint8(u & 0x0000ff00),
+		a: uint8(u & 0x000000ff),
+	}
+}
 
 func entityDecoder(c *Class) decoder {
 	return func(br bit.Reader) interface{} {
@@ -79,24 +94,92 @@ func vectorDecoder(f *Field) decoder {
 	}
 }
 
-type vector [3]float32
+type vector struct {
+	x float32
+	y float32
+	z float32
+}
 
 func decodeNormalVector(br bit.Reader) interface{} {
 	var v vector
 	x, y := bit.ReadBool(br), bit.ReadBool(br)
 	if x {
-		v[0] = bit.ReadNormal(br)
+		v.x = bit.ReadNormal(br)
 	}
 	if y {
-		v[1] = bit.ReadNormal(br)
+		v.y = bit.ReadNormal(br)
 	}
-	// yoooooo what in the good fuck is going on here
-	p := v[0]*v[0] + v[1]*v[1]
-	if p < 1.0 {
-		v[2] = float32(math.Sqrt(float64(1.0 - p)))
-	}
-	if bit.ReadBool(br) {
-		v[2] = -v[2]
-	}
+
+	// here comes a shitty hack!
+	bit.ReadBool(br)
+	// discard this flag, it's concerned with the sign of the z value, which
+	// we're skipping.
 	return v
+
+	// ok, so. I have a suspicion that what we're interested in here is a
+	// surface normal, and that it's describing something about the geometry of
+	// the scene. I can't for the life of me see why in the hell we'd *ever*
+	// care about this in the context of parsing a replay, so I'm just turning
+	// off the z calculation. What follows is the original implementation as
+	// adapted from Manta and Clarity. The reason I care to skip this is that
+	// it involves a sqrt, which is a super slow operatation, and one worth
+	// dispensing with if you don't need the data that it produces.
+	//
+	// p := v.x*v.x + v.y*v.y
+	// if p < 1.0 {
+	// 	v.z = float32(math.Sqrt(float64(1.0 - p)))
+	// }
+	// if bit.ReadBool(br) {
+	// 	// we might wind up with the float representation of negative zero here,
+	// 	// but as far as I can tell, negative zero is fine because negative
+	// 	// zero is equivalent to positive zero. They'll print differently, but
+	// 	// I don't think we care about that.
+	// 	v.z = -v.z
+	// }
+	// return v
+}
+
+// decodes a qangle, which is a representation of an euler angle. that is, it's
+// a three-angle encoding of orientation.
+// https://developer.valvesoftware.com/wiki/QAngle
+//
+// the x, y, and z in this case do not refer to positions along a set of
+// cartesian axes, but degress of rotation in an Euler angle.
+//
+//   (-45,10,0) means 45° up, 10° left and 0° roll.
+func qangleDecoder(f *Field) decoder {
+	if f.encoder != nil && f.encoder.String() == "qangle_pitch_yaw" {
+		return nil
+	}
+	bits := f.bits
+	if bits == 32 {
+		return nil
+	}
+	if bits == 0 {
+		return func(br bit.Reader) interface{} {
+			var (
+				v vector
+				x = bit.ReadBool(br)
+				y = bit.ReadBool(br)
+				z = bit.ReadBool(br)
+			)
+			if x {
+				v.x = bit.ReadCoord(br)
+			}
+			if y {
+				v.y = bit.ReadCoord(br)
+			}
+			if z {
+				v.z = bit.ReadCoord(br)
+			}
+			return v
+		}
+	}
+	return func(br bit.Reader) interface{} {
+		return vector{
+			x: bit.ReadAngle(br, bits),
+			y: bit.ReadAngle(br, bits),
+			z: bit.ReadAngle(br, bits),
+		}
+	}
 }
