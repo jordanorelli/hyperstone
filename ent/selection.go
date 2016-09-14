@@ -29,13 +29,15 @@ func (s selection) fill(offset int, displayPath string, dest slotted, br bit.Rea
 		if fn == nil {
 			switch v := dest.(type) {
 			case *Entity:
+				Debug.Printf("%s %s (%s)", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot))
 				Info.Fatalf("%v entity has no decoder for slot %d (%v)", v.Class, slot, v.Class.Fields[slot])
 			default:
 				Info.Fatalf("slotted value %v has no decoder for slot %d", dest, slot)
 			}
 		}
-		val := fn(br)
 		old := dest.slotValue(slot)
+		Debug.Printf("%s %s (%s): %v", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), old)
+		val := fn(br)
 		dest.setSlotValue(slot, val)
 		Debug.Printf("%s %s (%s): %v -> %v", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), old, val)
 		return nil
@@ -43,6 +45,7 @@ func (s selection) fill(offset int, displayPath string, dest slotted, br bit.Rea
 		v := dest.slotValue(slot)
 		vs, ok := v.(slotted)
 		if !ok {
+			Info.Fatalf("child selection %s at offset %d refers to a slot (%d: %s) that contains a non-slotted type: %s", s, offset, slot, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot))
 			return fmt.Errorf("child selection refers to a slot that doesn't contain a slotted value")
 		}
 		return s.fill(offset+1, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), vs, br)

@@ -1,7 +1,7 @@
 package ent
 
 import (
-	"strings"
+	// "strings"
 
 	"github.com/jordanorelli/hyperstone/bit"
 )
@@ -33,6 +33,8 @@ func newFieldDecoder(n *Namespace, f *Field) decoder {
 	case "CGameSceneNodeHandle":
 		// ehhh maybe no?
 		return decodeVarInt32
+	case "CUtlStringToken":
+		return symbolDecoder(n)
 	}
 
 	// the field is itself an entity contained within the outer entity.
@@ -40,12 +42,27 @@ func newFieldDecoder(n *Namespace, f *Field) decoder {
 		return entityDecoder(f.class)
 	}
 
-	Debug.Printf("type spec: %v", parseTypeName(n, typeName))
-
-	switch {
-	case strings.HasPrefix(typeName, "CHandle"):
-		return decodeVarInt32
+	// for compound types such as handles, vectors (in the c++ std::vector
+	// sense), and arrays
+	ts := parseTypeName(n, typeName)
+	switch ts.kind {
+	case t_element:
+		Debug.Printf("weird typespec: we shouldn't have elements here: %v", ts)
+		return func(bit.Reader) interface{} {
+			Info.Fatalf("unable to decode element of type: %v", ts.name)
+			return nil
+		}
+	case t_object:
+		return func(br bit.Reader) interface{} {
+			Debug.Printf("unable to decode object of type: %v", ts.name)
+			return decodeVarInt32(br)
+		}
+	case t_array:
+		return arrayDecoder(n, f, ts)
+	case t_template:
+		return templateDecoder(f, ts)
 	}
+
 	return nil
 }
 
@@ -181,5 +198,29 @@ func qangleDecoder(f *Field) decoder {
 			y: bit.ReadAngle(br, bits),
 			z: bit.ReadAngle(br, bits),
 		}
+	}
+}
+
+func arrayDecoder(n *Namespace, f *Field, ts typeSpec) decoder {
+	return decodeVarInt32
+}
+
+func templateDecoder(f *Field, ts typeSpec) decoder {
+	switch ts.template {
+	case "CHandle":
+		return decodeVarInt32
+	case "CStrongHandle":
+		return decodeVarInt64
+	case "CUtlVector":
+		return decodeVarInt32
+	}
+	return nil
+}
+
+// so far a sanity check on the values I'm seeing out of this seem wrong.
+func symbolDecoder(n *Namespace) decoder {
+	return func(br bit.Reader) interface{} {
+		u := bit.ReadVarInt32(br)
+		return n.Symbol(int(u))
 	}
 }
