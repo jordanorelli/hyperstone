@@ -20,6 +20,7 @@ func (s selection) String() string { return fmt.Sprint(s.path()) }
 func (s selection) path() []int    { return s.vals[:s.count] }
 
 func (s selection) fill(offset int, displayPath string, dest slotted, br bit.Reader) error {
+	Debug.Printf("fill selection: %s offset: %d displayPath: %s dest: %v", s, offset, displayPath, dest)
 	slot := s.vals[offset]
 	if s.count-offset <= 0 {
 		panic("selection makes no sense")

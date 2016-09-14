@@ -82,7 +82,7 @@ func parseArrayName(s string) (string, int) {
 			n, err := strconv.Atoi(ns)
 			if err != nil {
 				n = cIdents[ns]
-				if n == 0 {
+				if n <= 0 {
 					panic("invalid array type name: " + err.Error())
 				}
 			}

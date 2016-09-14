@@ -92,8 +92,7 @@ func (d *Dict) updateEntity(id int) error {
 	if e == nil {
 		return fmt.Errorf("update entity %d refused: no such entity", id)
 	}
-	// e.Read(d.br, d.sr)
-	return nil
+	return fillSlots(e, e.Class.String(), d.sr, d.br)
 }
 
 func (d *Dict) deleteEntity(id int) error {
@@ -122,7 +121,9 @@ func (d *Dict) Handle(m proto.Message) {
 		d.syncBaselines()
 
 	case *dota.CSVCMsg_PacketEntities:
-		d.mergeEntities(v)
+		if err := d.mergeEntities(v); err != nil {
+			Debug.Printf("merge entities error: %v", err)
+		}
 	}
 }
 
@@ -133,8 +134,7 @@ func (d *Dict) mergeEntities(m *dota.CSVCMsg_PacketEntities) error {
 
 	d.br.SetSource(data)
 	id := -1
-	// for i := 0; i < int(m.GetUpdatedEntries()); i++ {
-	for i := 0; i < 1; i++ {
+	for i := 0; i < int(m.GetUpdatedEntries()); i++ {
 		id++
 		// there may be a jump indicator, indicating how many id positions
 		// to skip.
