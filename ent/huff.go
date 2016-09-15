@@ -147,10 +147,12 @@ var hlist = nodeList{
 		panic("not implemented: PlusFour")
 	}},
 	lNode{"PopAllButOnePlusNPack6Bits", 32, 634, func(r *selectionReader, br bit.Reader) {
-		panic("not implemented: PopAllButOnePlusNPack6Bits")
+		r.cur.count = 1
+		r.add(int(br.ReadBits(6)) + 1)
 	}},
 	lNode{"PushOneLeftDeltaNRightZero", 9, 560, func(r *selectionReader, br bit.Reader) {
-		panic("not implemented: PushOneLeftDeltaNRightZero")
+		r.add(int(bit.ReadUBitVarFP(br)))
+		r.push(0)
 	}},
 	lNode{"PushOneLeftDeltaOneRightZero", 7, 521, func(r *selectionReader, br bit.Reader) {
 		r.add(1)
@@ -172,7 +174,8 @@ var hlist = nodeList{
 		panic("not implemented: PushOneLeftDeltaNRightNonZeroPack8Bits")
 	}},
 	lNode{"PopAllButOnePlusN", 30, 149, func(r *selectionReader, br bit.Reader) {
-		panic("not implemented: PopAllButOnePlusN")
+		r.cur.count = 1
+		r.add(int(bit.ReadUBitVarFP(br)) + 1)
 	}},
 	lNode{"NonTopoComplexPack4Bits", 38, 99, func(r *selectionReader, br bit.Reader) {
 		r.måp(func(i int) int {
