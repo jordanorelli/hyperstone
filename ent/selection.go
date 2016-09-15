@@ -32,7 +32,6 @@ func (s selection) fill(offset int, displayPath string, dest slotted, br bit.Rea
 			case *Entity:
 				Debug.Printf("%s %s (%s)", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot))
 				return nil
-				// Info.Fatalf("%v entity has no decoder for slot %d (%v)", v.Class, slot, v.Class.Fields[slot])
 			default:
 				Info.Printf("slotted value %v has no decoder for slot %d", dest, slot)
 				return nil
@@ -96,8 +95,15 @@ func (r *selectionReader) push(i int) {
 	r.cur.count++
 }
 
-// pops the last value off of the current selection
-func (r *selectionReader) pop() { r.cur.count-- }
+// pops n elements from the selection. if n is negative, pops all but n
+// elements from the selection.
+func (r *selectionReader) pop(n int) {
+	if n < 0 {
+		r.cur.count = -n
+	} else {
+		r.cur.count -= n
+	}
+}
 
 // maps a function over the current set of values in the current selection
 func (r *selectionReader) måp(fn func(int) int) {
