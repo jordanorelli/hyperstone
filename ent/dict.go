@@ -75,7 +75,10 @@ func (d *Dict) createEntity(id int) error {
 	e := class.New(serial, false)
 	d.entities[id] = e
 	Debug.Printf("create entity id: %d serial: %d classId: %d className: %v class: %v\n", id, serial, classId, className, class)
-	return fillSlots(e, class.Name.String(), d.sr, d.br)
+	if err := fillSlots(e, class.Name.String(), d.sr, d.br); err != nil {
+		return fmt.Errorf("failed to create entity %d (%s): %v", id, className, err)
+	}
+	return nil
 }
 
 func (d *Dict) getEntity(id int) *Entity {
@@ -92,13 +95,23 @@ func (d *Dict) updateEntity(id int) error {
 	if e == nil {
 		return fmt.Errorf("update entity %d refused: no such entity", id)
 	}
-	return fillSlots(e, e.Class.String(), d.sr, d.br)
+	if err := fillSlots(e, e.Class.String(), d.sr, d.br); err != nil {
+		return fmt.Errorf("failed to update entity %d (%s): %v", id, e.Class.Name.String(), err)
+	}
+	return nil
 }
 
 func (d *Dict) deleteEntity(id int) error {
 	Debug.Printf("delete entity id: %d\n", id)
 	if id < 0 || id >= e_limit {
-		return fmt.Errorf("delete entity %d refused: no such entity", id)
+		// we're probably reading corrupt shit if we get here
+		return fmt.Errorf("delete entity %d refused: id is out of bounds", id)
+	}
+	if d.entities[id] == nil {
+		// this one's probably ok to let fly, but it's probably a sign that
+		// something is wrong elsewhere.
+		Debug.Printf("delete entity %d refused: no such entity", id)
+		return nil
 	}
 	d.entities[id] = nil
 	return nil
@@ -122,7 +135,7 @@ func (d *Dict) Handle(m proto.Message) {
 
 	case *dota.CSVCMsg_PacketEntities:
 		if err := d.mergeEntities(v); err != nil {
-			Debug.Printf("merge entities error: %v", err)
+			Info.Fatalf("merge entities error: %v", err)
 		}
 	}
 }
@@ -154,7 +167,7 @@ func (d *Dict) mergeEntities(m *dota.CSVCMsg_PacketEntities) error {
 		}
 
 		if err := fn(id); err != nil {
-			return fmt.Errorf("entity merge error: %v", err)
+			return fmt.Errorf("error on entity %d: %v", id, err)
 		}
 	}
 	return nil
@@ -165,15 +178,14 @@ func (d *Dict) updateBaselines(t *stbl.Table) {
 	d.syncBaselines()
 }
 
-func (d *Dict) syncBaselines() {
+func (d *Dict) syncBaselines() error {
 	if !d.hasClassinfo() {
 		Debug.Printf("syncBaselines skip: no classInfo yet")
-		return
+		return nil
 	}
 	Debug.Printf("syncBaselines start")
 	if d.base == nil {
-		Debug.Printf("syncBaselines failed: reference to baseline string table is nil")
-		return
+		return fmt.Errorf("syncBaselines failed: reference to baseline string table is nil")
 	}
 
 	for _, e := range d.base.Entries() {
@@ -201,8 +213,8 @@ func (d *Dict) syncBaselines() {
 		d.br.SetSource(e.Value)
 		Debug.Printf("syncBaselines has new baseline for class %v", c)
 		if err := fillSlots(c.baseline, c.Name.String(), d.sr, d.br); err != nil {
-			Debug.Printf("syncBaselines failed to fill a baseline: %v", err)
-			continue
+			return fmt.Errorf("syncBaselines failed to fill a baseline: %v", err)
 		}
 	}
+	return nil
 }

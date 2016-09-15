@@ -20,7 +20,6 @@ func (s selection) String() string { return fmt.Sprint(s.path()) }
 func (s selection) path() []int    { return s.vals[:s.count] }
 
 func (s selection) fill(offset int, displayPath string, dest slotted, br bit.Reader) error {
-	Debug.Printf("fill selection: %s offset: %d displayPath: %s dest: %v", s, offset, displayPath, dest)
 	slot := s.vals[offset]
 	if s.count-offset <= 0 {
 		panic("selection makes no sense")
@@ -48,8 +47,7 @@ func (s selection) fill(offset int, displayPath string, dest slotted, br bit.Rea
 		v := dest.slotValue(slot)
 		vs, ok := v.(slotted)
 		if !ok {
-			Info.Printf("child selection %s at offset %d refers to a slot (%d: %s) that contains a non-slotted type: %s with value: %v", s, offset, slot, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), v)
-			return fmt.Errorf("child selection refers to a slot that doesn't contain a slotted value")
+			return fmt.Errorf("selection %s at offset %d (%d) refers to a slot (%s) that contains a non-slotted type (%s) with value %v", s, offset, slot, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), v)
 		}
 		return s.fill(offset+1, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), vs, br)
 	}
