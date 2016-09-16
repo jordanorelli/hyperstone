@@ -78,7 +78,7 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) error {
 		version := int(c.GetSerializerVersion())
 
 		Debug.Printf("new class: %s %v", name, version)
-		class := Class{Name: name, Version: version}
+		class := Class{name: name, Version: version}
 		class.fromProto(c, fields)
 
 		id := classId{name: name, version: version}
@@ -91,12 +91,6 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) error {
 		}
 	}
 
-	// some fields explicitly reference their origin class (P). that is is, if
-	// a given field F is included in some class C, the field F having an
-	// origin class P indicates that the class C has the class P as an
-	// ancestor. since these references are circular, we unpacked the fields
-	// first, then the classes, and now we re-visit the fields to set their
-	// origin class pointers, now that the classes exist.
 	for i := range fields {
 		f := &fields[i]
 		if f.serializer != nil {
@@ -139,8 +133,82 @@ func (n *Namespace) mergeSendTables(st *dota.CDemoSendTables) error {
 		f.decoder = newFieldDecoder(n, f)
 	}
 
+	for _, ff := range flat.GetFields() {
+		t, err := parseType(n, ff)
+		if err != nil {
+			Debug.Printf("  parseType error: %v", err)
+		} else {
+			Debug.Printf("  parseType type: %v", t)
+		}
+	}
+
 	return br.Err()
 }
+
+/*
+func (n *Namespace) newMergeSendTables(st *dota.CDemoSendTables) error {
+	// sendtables only has one field, a binary data field. It's not immediately
+	// clear why this message exists at all when it could simply contain
+	// CSVMsg_FlattenedSerializer.
+	data := st.GetData()
+	br := bit.NewBytesReader(data)
+	// body is length-prefixed
+	size := int(bit.ReadVarInt(br))
+	buf := make([]byte, size)
+	br.Read(buf)
+	flat := dota.CSVCMsg_FlattenedSerializer{}
+	if err := proto.Unmarshal(buf, &flat); err != nil {
+		return fmt.Errorf("unable to merge send tables: %v", err)
+	}
+	return n.mergeSerializers(&flat)
+}
+
+func (n *Namespace) mergeSerializers(flat *dota.CSVCMsg_FlattenedSerializer) error {
+	// most of the names and associated strings are interned in a symbol table.
+	// We'll need these first since they're referenced throughought the class
+	// and field definitions.
+	n.SymbolTable = SymbolTable(flat.GetSymbols())
+
+	n.classes = make(map[classId]*Class, len(flat.GetSerializers()))
+	n.classesByName = make(map[string]map[int]*Class, len(flat.GetSerializers()))
+
+	// some fields refer to classes, but classes are collections of fields.
+	// Their references are potentially cyclical. We start by creating empty
+	// classes so that fields may point to them.
+	for _, s := range flat.GetSerializers() {
+		name_sym := n.Symbol(int(s.GetSerializerNameSym()))
+		ver := int(s.GetSerializerVersion())
+		class := Class{name: name_sym, Version: ver}
+		n.classes[class.Id()] = &class
+		if n.classesByName[class.Name()] == nil {
+			n.classesByName[class.Name()] = make(map[int]*Class)
+		}
+		n.classesByName[class.Name()][ver] = &class
+	}
+
+	// type ProtoFlattenedSerializerFieldT struct {
+	// 	VarTypeSym             *int32
+	// 	VarNameSym             *int32
+	// 	VarEncoderSym          *int32
+	// 	FieldSerializerNameSym *int32
+	// 	FieldSerializerVersion *int32
+	// 	BitCount               *int32
+	// 	LowValue               *float32
+	// 	HighValue              *float32
+	// 	EncodeFlags            *int32
+	// 	SendNodeSym            *int32
+	// }
+
+	// next we parse all of the fields along with their type definitions
+	fields := make(map[int]Field, len(flat.GetFields()))
+	for id, flatField := range flat.GetFields() {
+		t := parseType(n, flatField)
+		fields[id].Name = n.Symbol(int(flatField.GetVarNameSym())).String()
+	}
+	os.Exit(1)
+	return nil
+}
+*/
 
 func (n *Namespace) readClassId(r bit.Reader) int {
 	return int(r.ReadBits(uint(n.idBits)))

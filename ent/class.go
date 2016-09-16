@@ -7,7 +7,7 @@ import (
 
 // Class represents a set of constraints around an Entity.
 type Class struct {
-	Name    Symbol
+	name    Symbol
 	Version int
 	Fields  []*Field
 
@@ -18,6 +18,10 @@ type Class struct {
 	// their own fields by name instead of by slot.
 	fieldNames map[string]int
 }
+
+func (c *Class) Name() string  { return c.name.String() }
+func (c *Class) Slotted() bool { return true }
+func (c *Class) Id() classId   { return classId{name: c.name, version: c.Version} }
 
 func (c *Class) New(serial int, baseline bool) *Entity {
 	e := &Entity{
@@ -36,6 +40,7 @@ func (c Class) String() string {
 	return fmt.Sprintf("{%s %d}", c.Name, c.Version)
 }
 
+// A class is identified by the union of its name and version.
 type classId struct {
 	name    Symbol
 	version int

@@ -6,12 +6,6 @@ import (
 	"github.com/jordanorelli/hyperstone/bit"
 )
 
-const (
-	f_min = 1 << iota
-	f_max
-	f_center
-)
-
 func floatDecoder(f *Field) decoder {
 	if f.encoder != nil && f.encoder.String() == "coord" {
 		return nil

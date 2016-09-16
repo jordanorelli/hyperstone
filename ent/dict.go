@@ -37,6 +37,7 @@ const e_limit = 2048
 type Dict struct {
 	*Namespace
 	entities []*Entity
+	hidx     map[int]*Entity // handle index
 	br       *bit.BufReader
 	sr       *selectionReader
 
@@ -75,7 +76,7 @@ func (d *Dict) createEntity(id int) error {
 	e := class.New(serial, false)
 	d.entities[id] = e
 	Debug.Printf("create entity id: %d serial: %d classId: %d className: %v class: %v\n", id, serial, classId, className, class)
-	if err := fillSlots(e, class.Name.String(), d.sr, d.br); err != nil {
+	if err := fillSlots(e, class.Name(), d.sr, d.br); err != nil {
 		return fmt.Errorf("failed to create entity %d (%s): %v", id, className, err)
 	}
 	return nil
@@ -96,7 +97,7 @@ func (d *Dict) updateEntity(id int) error {
 		return fmt.Errorf("update entity %d refused: no such entity", id)
 	}
 	if err := fillSlots(e, e.Class.String(), d.sr, d.br); err != nil {
-		return fmt.Errorf("failed to update entity %d (%s): %v", id, e.Class.Name.String(), err)
+		return fmt.Errorf("failed to update entity %d (%s): %v", id, e.Class.Name(), err)
 	}
 	return nil
 }
@@ -212,7 +213,7 @@ func (d *Dict) syncBaselines() error {
 
 		d.br.SetSource(e.Value)
 		Debug.Printf("syncBaselines has new baseline for class %v", c)
-		if err := fillSlots(c.baseline, c.Name.String(), d.sr, d.br); err != nil {
+		if err := fillSlots(c.baseline, c.Name(), d.sr, d.br); err != nil {
 			return fmt.Errorf("syncBaselines failed to fill a baseline: %v", err)
 		}
 	}

@@ -7,6 +7,14 @@ import (
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
+/*
+type Field struct {
+	Name string
+	Type
+}
+
+*/
+
 type Field struct {
 	_type             Symbol // type of data held by the field
 	typeSpec          typeSpec
@@ -16,8 +24,8 @@ type Field struct {
 	low               float32 // lower limit of field values
 	high              float32 // upper limit of field values
 	flags             int     // used by float decoder
-	serializer        *Symbol // class on which the field was defined
-	serializerVersion *int32  // version of the class on which the field was defined
+	serializer        *Symbol // the field is an entity with this class
+	serializerVersion *int32
 	class             *Class  // source class on which the field was originally defined
 	encoder           *Symbol // binary encoder, named explicitly in protobuf
 	decoder                   // decodes field values from a bit stream
