@@ -113,12 +113,6 @@ func vectorDecoder(f *Field) decoder {
 	}
 }
 
-type vector struct {
-	x float32
-	y float32
-	z float32
-}
-
 func decodeNormalVector(br bit.Reader) interface{} {
 	var v vector
 	x, y := bit.ReadBool(br), bit.ReadBool(br)

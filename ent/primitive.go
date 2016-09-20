@@ -38,6 +38,7 @@ func init() {
 		{name: "int32", read: readInt32},
 		{name: "int64", read: readInt64},
 		{name: "Color", read: readColor},
+		{name: "HSequence", read: readIntMinusOne},
 	}
 	primitives = make(map[string]Primitive, len(types))
 	for _, t := range types {
@@ -48,6 +49,10 @@ func init() {
 func readBool(br bit.Reader, d *Dict) (interface{}, error) {
 	return bit.ReadBool(br), br.Err()
 }
+
+// ------------------------------------------------------------------------------
+// uints
+// ------------------------------------------------------------------------------
 
 func readUint8(br bit.Reader, d *Dict) (interface{}, error) {
 	return uint8(br.ReadBits(8)), br.Err()
@@ -64,6 +69,10 @@ func readUint32(br bit.Reader, d *Dict) (interface{}, error) {
 func readUint64(br bit.Reader, d *Dict) (interface{}, error) {
 	return bit.ReadVarInt(br), br.Err()
 }
+
+// ------------------------------------------------------------------------------
+// ints
+// ------------------------------------------------------------------------------
 
 func readInt8(br bit.Reader, d *Dict) (interface{}, error) {
 	return int8(bit.ReadZigZag(br)), br.Err()
@@ -89,4 +98,9 @@ func readColor(br bit.Reader, d *Dict) (interface{}, error) {
 		b: uint8(u & 0x0000ff00),
 		a: uint8(u & 0x000000ff),
 	}, br.Err()
+}
+
+// what in the good fuck is this
+func readIntMinusOne(br bit.Reader, d *Dict) (interface{}, error) {
+	return bit.ReadVarInt(br) - 1, br.Err()
 }
