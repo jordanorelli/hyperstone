@@ -143,10 +143,10 @@ func main() {
 	case "entities":
 		ent.Debug = log.New(os.Stdout, "", 0)
 		sd := stbl.NewDict()
-		ed := ent.NewDict(sd)
+		env := new(ent.Env)
 		handle = func(m proto.Message) {
 			sd.Handle(m)
-			ed.Handle(m)
+			env.Handle(m)
 		}
 	default:
 		bail(1, "no such action: %s", flag.Arg(0))

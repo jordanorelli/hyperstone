@@ -19,39 +19,6 @@ type selection struct {
 func (s selection) String() string { return fmt.Sprint(s.path()) }
 func (s selection) path() []int    { return s.vals[:s.count] }
 
-func (s selection) fill(offset int, displayPath string, dest slotted, br bit.Reader) error {
-	slot := s.vals[offset]
-	if s.count-offset <= 0 {
-		panic("selection makes no sense")
-	}
-	switch s.count - offset {
-	case 1:
-		fn := dest.slotDecoder(slot)
-		if fn == nil {
-			switch dest.(type) {
-			case *Entity:
-				Debug.Printf("%s %s (%s)", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot))
-				return nil
-			default:
-				Info.Printf("slotted value %v has no decoder for slot %d", dest, slot)
-				return nil
-			}
-		}
-		old := dest.slotValue(slot)
-		val := fn(br)
-		dest.setSlotValue(slot, val)
-		Debug.Printf("%s %s (%s): %v -> %v", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), old, val)
-		return nil
-	default:
-		v := dest.slotValue(slot)
-		vs, ok := v.(slotted)
-		if !ok {
-			return fmt.Errorf("selection %s at offset %d (%d) refers to a slot (%s) that contains a non-slotted type (%s) with value %v", s, offset, slot, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), v)
-		}
-		return s.fill(offset+1, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), vs, br)
-	}
-}
-
 // selectionReader reads a set of field selections off of the wire. the
 // selections are represented as arrays of slot positions to be traversed in
 // order to select an entity slot.
