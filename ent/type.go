@@ -1,4 +1,6 @@
 package ent
 
-type tÿpe interface {
+type tÿpe struct {
+	name  string
+	alloc func(...interface{}) value
 }
