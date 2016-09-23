@@ -146,7 +146,9 @@ func main() {
 		env := new(ent.Env)
 		handle = func(m proto.Message) {
 			sd.Handle(m)
-			env.Handle(m)
+			if err := env.Handle(m); err != nil {
+				bail(1, "%v", err)
+			}
 		}
 	default:
 		bail(1, "no such action: %s", flag.Arg(0))
