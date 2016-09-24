@@ -33,6 +33,7 @@ func parseType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 // unable to correctly parse. It can be interpreted as an error or as a type;
 // when interpreted as a type, it errors every time it tries to read a value.
 func typeError(t string, args ...interface{}) tÿpe {
+	Debug.Printf("  type error: %s", fmt.Sprintf(t, args...))
 	return error_t(fmt.Sprintf(t, args...))
 }
 

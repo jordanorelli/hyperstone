@@ -11,6 +11,7 @@ func qAngleType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 	}
 	switch flat.GetBitCount() {
 	case 0:
+		Debug.Printf("  qangle type")
 		return typeFn(func(r bit.Reader) (value, error) {
 			x, y, z := bit.ReadBool(r), bit.ReadBool(r), bit.ReadBool(r)
 			var v vector

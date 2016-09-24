@@ -20,6 +20,7 @@ func (f *field) fromProto(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) e
 		return wrap(err, "unable to parse type %s", prettyFlatField(flat, env))
 	}
 
+	Debug.Printf("  type: %v", t)
 	f.tÿpe = t
 	f.name = env.symbol(int(flat.GetVarNameSym()))
 	return nil

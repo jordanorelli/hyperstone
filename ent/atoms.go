@@ -14,6 +14,7 @@ var atom_types = map[string]typeFn{
 func atomType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 	var_type := env.symbol(int(flat.GetVarTypeSym()))
 	if t, ok := atom_types[var_type]; ok {
+		Debug.Printf("  atom type")
 		return t
 	}
 	return nil

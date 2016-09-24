@@ -14,6 +14,7 @@ func handleType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 		return nil
 	}
 
+	Debug.Printf("  handle type")
 	return typeFn(func(r bit.Reader) (value, error) {
 		return handle(bit.ReadVarInt(r)), r.Err()
 	})

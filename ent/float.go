@@ -14,8 +14,12 @@ const (
 )
 
 func floatType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
-	if env.symbol(int(flat.GetVarTypeSym())) == "CNetworkedQuantizedFloat" {
+	switch env.symbol(int(flat.GetVarTypeSym())) {
+	case "CNetworkedQuantizedFloat":
 		return qFloatType(flat, env)
+	case "float32":
+	default:
+		return nil
 	}
 	if env.symbol(int(flat.GetVarEncoderSym())) == "coord" {
 		return nil
@@ -25,9 +29,10 @@ func floatType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 	}
 	switch flat.GetBitCount() {
 	case 0, 32:
+		Debug.Printf("  std float type")
 		return typeFn(float_t)
 	default:
-		return nil
+		return qFloatType(flat, env)
 	}
 }
 
@@ -62,6 +67,7 @@ func qFloatType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 		}
 	}
 
+	Debug.Printf("  qfloat type")
 	return t
 }
 
