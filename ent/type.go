@@ -32,9 +32,13 @@ func parseType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 // a type error is both an error and a type. It represents a type that we were
 // unable to correctly parse. It can be interpreted as an error or as a type;
 // when interpreted as a type, it errors every time it tries to read a value.
-type typeError string
+func typeError(t string, args ...interface{}) tÿpe {
+	return error_t(fmt.Sprintf(t, args...))
+}
 
-func (e typeError) Error() string { return string(e) }
-func (e typeError) read(r bit.Reader) (value, error) {
+type error_t string
+
+func (e error_t) Error() string { return string(e) }
+func (e error_t) read(r bit.Reader) (value, error) {
 	return nil, fmt.Errorf("type error: %s", string(e))
 }

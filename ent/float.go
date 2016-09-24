@@ -50,16 +50,18 @@ func qFloatType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 
 	if t.flags > 0 {
 		t.special = new(float32)
+		switch t.flags {
+		case f_min:
+			*t.special = t.low
+		case f_max:
+			*t.special = t.high
+		case f_center:
+			*t.special = t.low + (t.high+t.low)*0.5
+		default:
+			return typeError("dunno how to handle qfloat flag value: %d", t.flags)
+		}
 	}
 
-	switch {
-	case t.flags&f_min > 0:
-		*t.special = t.low
-	case t.flags&f_max > 0:
-		*t.special = t.high
-	case t.flags&f_center > 0:
-		*t.special = t.low + (t.high+t.low)*0.5
-	}
 	return t
 }
 

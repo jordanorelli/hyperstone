@@ -14,7 +14,10 @@ func (f *field) fromProto(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) e
 	Debug.Printf("parse flat field: %s", prettyFlatField(flat, env))
 	t := parseType(flat, env)
 	if t == nil {
-		return fmt.Errorf("unable to parse type: %s", prettyFlatField(flat, env))
+		return fmt.Errorf("unable to parse type %s", prettyFlatField(flat, env))
+	}
+	if err, ok := t.(error); ok {
+		return wrap(err, "unable to parse type %s", prettyFlatField(flat, env))
 	}
 
 	f.tÿpe = t
