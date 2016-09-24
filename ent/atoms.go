@@ -2,15 +2,19 @@ package ent
 
 import (
 	"github.com/jordanorelli/hyperstone/bit"
+	"github.com/jordanorelli/hyperstone/dota"
 )
 
-var atom_types = map[string]tÿpe{
-	"uint16": {"uint16", func(...interface{}) value { return new(uint16_v) }},
+var atom_types = map[string]typeFn{
+	"uint16": func(r bit.Reader) (value, error) {
+		return uint16(bit.ReadVarInt(r)), r.Err()
+	},
 }
 
-type uint16_v uint16
-
-func (u *uint16_v) read(r bit.Reader) error {
-	*u = uint16_v(bit.ReadVarInt(r))
-	return r.Err()
+func atomType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
+	var_type := env.symbol(int(flat.GetVarTypeSym()))
+	if t, ok := atom_types[var_type]; ok {
+		return t
+	}
+	return nil
 }

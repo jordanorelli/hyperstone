@@ -11,14 +11,13 @@ type field struct {
 }
 
 func (f *field) fromProto(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) error {
-	var_name := env.symbol(int(flat.GetVarNameSym()))
-	var_type := env.symbol(int(flat.GetVarTypeSym()))
-
-	if t, ok := atom_types[var_type]; ok {
-		f.name = var_name
-		f.tÿpe = t
-		return nil
+	Debug.Printf("parse flat field: %s", prettyFlatField(flat, env))
+	t := parseType(flat, env)
+	if t == nil {
+		return fmt.Errorf("unable to parse type: %s", prettyFlatField(flat, env))
 	}
 
-	return fmt.Errorf("unable to parse type: %s", prettyFlatField(flat, env))
+	f.tÿpe = t
+	f.name = env.symbol(int(flat.GetVarNameSym()))
+	return nil
 }
