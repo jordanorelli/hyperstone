@@ -26,7 +26,7 @@ func parseType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 		}
 		return nil
 	}
-	return coalesce(atomType, qFloatType, handleType)
+	return coalesce(atomType, floatType, handleType, qAngleType)
 }
 
 // a type error is both an error and a type. It represents a type that we were

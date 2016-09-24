@@ -1,7 +1,7 @@
 package ent
 
 import (
-	"fmt"
+	"math"
 
 	"github.com/jordanorelli/hyperstone/bit"
 	"github.com/jordanorelli/hyperstone/dota"
@@ -13,10 +13,25 @@ const (
 	f_center
 )
 
-func qFloatType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
-	if env.symbol(int(flat.GetVarTypeSym())) != "CNetworkedQuantizedFloat" {
+func floatType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
+	if env.symbol(int(flat.GetVarTypeSym())) == "CNetworkedQuantizedFloat" {
+		return qFloatType(flat, env)
+	}
+	if env.symbol(int(flat.GetVarEncoderSym())) == "coord" {
 		return nil
 	}
+	if env.symbol(int(flat.GetFieldSerializerNameSym())) == "simulationtime" {
+		return nil
+	}
+	switch flat.GetBitCount() {
+	case 0, 32:
+		return typeFn(float_t)
+	default:
+		return nil
+	}
+}
+
+func qFloatType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 	if flat.GetBitCount() < 0 {
 		return typeError("quantized float has invalid negative bit count specifier")
 	}
@@ -63,5 +78,10 @@ func (t qfloat_t) read(r bit.Reader) (value, error) {
 	if t.special != nil && bit.ReadBool(r) {
 		return *t.special, nil
 	}
-	return nil, fmt.Errorf("I'll get there")
+	return t.low + float32(r.ReadBits(t.bits))*t.interval, r.Err()
+}
+
+func float_t(r bit.Reader) (value, error) {
+	// TODO: check uint32 overflow here?
+	return math.Float32frombits(uint32(r.ReadBits(32))), r.Err()
 }
