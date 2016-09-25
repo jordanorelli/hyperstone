@@ -32,7 +32,8 @@ func parseTypeSpec(spec *typeSpec, env *Env) tÿpe {
 		}
 		return nil
 	}
-	return coalesce(arrayType, atomType, floatType, handleType, qAngleType, hSeqType, genericType, classType)
+	return coalesce(arrayType, atomType, floatType, handleType, qAngleType,
+		hSeqType, genericType, vectorType, classType)
 }
 
 // a type error is both an error and a type. It represents a type that we were

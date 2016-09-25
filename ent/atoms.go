@@ -16,6 +16,9 @@ var atom_types = map[string]typeFn{
 		// TODO: bounds check here
 		return uint16(bit.ReadVarInt(r)), r.Err()
 	},
+	"uint32": func(r bit.Reader) (value, error) {
+		return bit.ReadVarInt32(r), r.Err()
+	},
 	"uint64": func(r bit.Reader) (value, error) {
 		return bit.ReadVarInt(r), r.Err()
 	},

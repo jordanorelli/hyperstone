@@ -17,6 +17,7 @@ func floatType(spec *typeSpec, env *Env) tÿpe {
 	case "CNetworkedQuantizedFloat":
 		return qFloatType(spec, env)
 	case "float32":
+	case "Vector":
 	default:
 		return nil
 	}
