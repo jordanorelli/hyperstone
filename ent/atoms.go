@@ -5,6 +5,13 @@ import (
 )
 
 var atom_types = map[string]typeFn{
+	"bool": func(r bit.Reader) (value, error) {
+		return bit.ReadBool(r), r.Err()
+	},
+	"uint8": func(r bit.Reader) (value, error) {
+		// TODO: bounds check here
+		return uint8(bit.ReadVarInt(r)), r.Err()
+	},
 	"uint16": func(r bit.Reader) (value, error) {
 		// TODO: bounds check here
 		return uint16(bit.ReadVarInt(r)), r.Err()
