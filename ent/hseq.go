@@ -2,11 +2,10 @@ package ent
 
 import (
 	"github.com/jordanorelli/hyperstone/bit"
-	"github.com/jordanorelli/hyperstone/dota"
 )
 
-func hSeqType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
-	if env.symbol(int(flat.GetVarTypeSym())) != "HSequence" {
+func hSeqType(spec *typeSpec, env *Env) tÿpe {
+	if spec.typeName != "HSequence" {
 		return nil
 	}
 

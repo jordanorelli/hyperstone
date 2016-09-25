@@ -12,7 +12,7 @@ type field struct {
 
 func (f *field) fromProto(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) error {
 	Debug.Printf("parse flat field: %s", prettyFlatField(flat, env))
-	t := parseType(flat, env)
+	t := parseFieldType(flat, env)
 	if t == nil {
 		return fmt.Errorf("unable to parse type %s", prettyFlatField(flat, env))
 	}

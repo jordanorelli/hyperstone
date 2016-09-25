@@ -2,14 +2,13 @@ package ent
 
 import (
 	"github.com/jordanorelli/hyperstone/bit"
-	"github.com/jordanorelli/hyperstone/dota"
 )
 
-func qAngleType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
-	if env.symbol(int(flat.GetVarTypeSym())) != "QAngle" {
+func qAngleType(spec *typeSpec, env *Env) tÿpe {
+	if spec.typeName != "QAngle" {
 		return nil
 	}
-	switch flat.GetBitCount() {
+	switch spec.bits {
 	case 0:
 		Debug.Printf("  qangle type")
 		return typeFn(func(r bit.Reader) (value, error) {
