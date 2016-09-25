@@ -26,6 +26,9 @@ var atom_types = map[string]typeFn{
 	"int32": func(r bit.Reader) (value, error) {
 		return bit.ReadZigZag32(r), r.Err()
 	},
+	"CUtlStringToken": func(r bit.Reader) (value, error) {
+		return bit.ReadVarInt(r), r.Err()
+	},
 }
 
 func atomType(spec *typeSpec, env *Env) tÿpe {
