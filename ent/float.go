@@ -22,7 +22,10 @@ func floatType(spec *typeSpec, env *Env) tÿpe {
 		return nil
 	}
 	if spec.encoder == "coord" {
-		return nil
+		Debug.Printf("  coord float type")
+		return typeFn(func(r bit.Reader) (value, error) {
+			return bit.ReadCoord(r), r.Err()
+		})
 	}
 	if spec.serializer == "simulationtime" {
 		return nil
@@ -30,7 +33,10 @@ func floatType(spec *typeSpec, env *Env) tÿpe {
 	switch spec.bits {
 	case 0, 32:
 		Debug.Printf("  std float type")
-		return typeFn(float_t)
+		return typeFn(func(r bit.Reader) (value, error) {
+			// TODO: check uint32 overflow here?
+			return math.Float32frombits(uint32(r.ReadBits(32))), r.Err()
+		})
 	default:
 		return qFloatType(spec, env)
 	}
@@ -80,9 +86,4 @@ func (t qfloat_t) read(r bit.Reader) (value, error) {
 		return *t.special, nil
 	}
 	return t.low + float32(r.ReadBits(t.bits))*t.interval, r.Err()
-}
-
-func float_t(r bit.Reader) (value, error) {
-	// TODO: check uint32 overflow here?
-	return math.Float32frombits(uint32(r.ReadBits(32))), r.Err()
 }
