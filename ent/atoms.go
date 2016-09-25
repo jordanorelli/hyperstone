@@ -29,6 +29,15 @@ var atom_types = map[string]typeFn{
 	"CUtlStringToken": func(r bit.Reader) (value, error) {
 		return bit.ReadVarInt(r), r.Err()
 	},
+	"Color": func(r bit.Reader) (value, error) {
+		u := bit.ReadVarInt(r)
+		return color{
+			r: uint8(u >> 6 & 0xff),
+			g: uint8(u >> 4 & 0xff),
+			b: uint8(u >> 2 & 0xff),
+			a: uint8(u >> 0 & 0xff),
+		}, r.Err()
+	},
 }
 
 func atomType(spec *typeSpec, env *Env) tÿpe {
@@ -38,3 +47,5 @@ func atomType(spec *typeSpec, env *Env) tÿpe {
 	}
 	return nil
 }
+
+type color struct{ r, g, b, a uint8 }

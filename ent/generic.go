@@ -26,12 +26,12 @@ func genericType(spec *typeSpec, env *Env) tÿpe {
 	// }
 
 	switch parts[0] {
-	case "CStrongHandle":
+	case "CHandle", "CStrongHandle":
 		return typeFn(func(r bit.Reader) (value, error) {
 			return handle(bit.ReadVarInt(r)), r.Err()
 		})
 	default:
-		return typeError("unknown generic name: %v", genericName)
+		return typeError("unknown generic name: %v", parts[0])
 	}
 }
 
