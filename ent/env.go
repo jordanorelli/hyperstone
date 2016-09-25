@@ -59,7 +59,7 @@ func (e *Env) stubClasses(flat *dota.CSVCMsg_FlattenedSerializer) {
 		if e.classes[name] == nil {
 			e.classes[name] = make(classHistory, 4)
 		}
-		e.classes[name][v] = new(class)
+		e.classes[name][v] = &class{name: name, version: v}
 	}
 }
 
