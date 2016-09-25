@@ -1,8 +1,6 @@
 package ent
 
 import (
-	"fmt"
-
 	"github.com/golang/protobuf/proto"
 
 	"github.com/jordanorelli/hyperstone/bit"
@@ -40,9 +38,7 @@ func (e *Env) mergeSendTables(m *dota.CDemoSendTables) error {
 	if err := e.parseFields(flat); err != nil {
 		return wrap(err, "unable to parse serializer fields")
 	}
-	if err := e.parseClasses(flat); err != nil {
-		return wrap(err, "unable to parse serializers")
-	}
+	e.fillClasses(flat)
 	return nil
 }
 
@@ -63,6 +59,9 @@ func (e *Env) stubClasses(flat *dota.CSVCMsg_FlattenedSerializer) {
 	}
 }
 
+// parses the type definitions for each field. some fields have types that
+// refer to class types defined in the replay file. classes must be declared up
+// front via stubclasses prior to parseFields working correctly.
 func (e *Env) parseFields(flat *dota.CSVCMsg_FlattenedSerializer) error {
 	e.fields = make([]field, len(flat.GetFields()))
 	for i, ff := range flat.GetFields() {
@@ -74,8 +73,19 @@ func (e *Env) parseFields(flat *dota.CSVCMsg_FlattenedSerializer) error {
 	return nil
 }
 
-func (e *Env) parseClasses(flat *dota.CSVCMsg_FlattenedSerializer) error {
-	return fmt.Errorf("nope, not yet")
+// associates each class with its list of fields. parseFields must be run
+// before fillClasses in order for the field definitions to exist.
+func (e *Env) fillClasses(flat *dota.CSVCMsg_FlattenedSerializer) {
+	for _, s := range flat.GetSerializers() {
+		name := e.symbol(int(s.GetSerializerNameSym()))
+		v := int(s.GetSerializerVersion())
+		class := e.classes[name][v]
+
+		class.fields = make([]field, len(s.GetFieldsIndex()))
+		for i, id := range s.GetFieldsIndex() {
+			class.fields[i] = e.fields[id]
+		}
+	}
 }
 
 func (e *Env) symbol(id int) string { return e.symbols[id] }

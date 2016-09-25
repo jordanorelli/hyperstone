@@ -8,6 +8,11 @@ import (
 type class struct {
 	name    string
 	version int
+	fields  []field
+}
+
+func (c class) String() string {
+	return fmt.Sprintf("<%s.%d>", c.name, c.version)
 }
 
 func (c *class) read(r bit.Reader) (value, error) {
