@@ -17,19 +17,18 @@ func genericType(spec *typeSpec, env *Env) tÿpe {
 		return typeError("bad generic name: %v", err)
 	}
 
-	// genericName, elemName := parts[0], parts[1]
-	// elemType := func() tÿpe {
-	// 	var elemSpec typeSpec
-	// 	elemSpec = *spec
-	// 	elemSpec.name = elemName
-	// 	return parseTypeSpec(&elemSpec, env)
-	// }
+	genericName, elemName := parts[0], parts[1]
+	elemSpec := *spec
+	elemSpec.typeName = elemName
+	elem := parseTypeSpec(&elemSpec, env)
 
-	switch parts[0] {
+	switch genericName {
 	case "CHandle", "CStrongHandle":
 		return typeFn(func(r bit.Reader) (value, error) {
 			return handle(bit.ReadVarInt(r)), r.Err()
 		})
+	case "CUtlVector":
+		return cutl_vector_t{elem}
 	default:
 		return typeError("unknown generic name: %v", parts[0])
 	}
@@ -65,5 +64,15 @@ func genericName(name string) ([2]string, error) {
 	if out[1] == "" {
 		return out, fmt.Errorf("empty generic element name")
 	}
+	Debug.Printf("  generic name in: %s out: %v", name, out)
 	return out, nil
+}
+
+type cutl_vector_t struct {
+	elem tÿpe
+}
+
+func (t cutl_vector_t) read(r bit.Reader) (value, error) {
+	count := bit.ReadVarInt32(r)
+	return make(array, count), r.Err()
 }

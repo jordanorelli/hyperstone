@@ -24,6 +24,7 @@ func parseFieldType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
 }
 
 func parseTypeSpec(spec *typeSpec, env *Env) tÿpe {
+	Debug.Printf("  parse spec: %v", spec)
 	coalesce := func(fns ...typeParseFn) tÿpe {
 		for _, fn := range fns {
 			if t := fn(spec, env); t != nil {
