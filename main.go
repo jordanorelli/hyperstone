@@ -142,10 +142,8 @@ func main() {
 		handle = dumpClasses
 	case "entities":
 		ent.Debug = log.New(os.Stdout, "", 0)
-		sd := stbl.NewDict()
-		env := new(ent.Env)
+		env := ent.NewEnv()
 		handle = func(m proto.Message) {
-			sd.Handle(m)
 			if err := env.Handle(m); err != nil {
 				bail(1, "%v", err)
 			}

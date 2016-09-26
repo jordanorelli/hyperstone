@@ -5,19 +5,41 @@ import (
 
 	"github.com/jordanorelli/hyperstone/bit"
 	"github.com/jordanorelli/hyperstone/dota"
+	"github.com/jordanorelli/hyperstone/stbl"
 )
 
 type Env struct {
 	symbols symbolTable
 	source  bit.BufReader
 	classes map[string]classHistory
+	netIds  map[int]string
 	fields  []field
+	strings *stbl.Dict
+}
+
+func NewEnv() *Env {
+	e := &Env{strings: stbl.NewDict()}
+	e.strings.WatchTable("instancebaseline", e.syncBaselineTable)
+	return e
 }
 
 func (e *Env) Handle(m proto.Message) error {
 	switch v := m.(type) {
+	case *dota.CSVCMsg_CreateStringTable:
+		_, err := e.strings.Create(v)
+		return err
+
+	case *dota.CSVCMsg_UpdateStringTable:
+		return e.strings.Update(v)
+
 	case *dota.CDemoSendTables:
-		return e.mergeSendTables(v)
+		if err := e.mergeSendTables(v); err != nil {
+			return err
+		}
+		e.syncBaseline()
+
+	case *dota.CDemoClassInfo:
+		e.mergeClassInfo(v)
 	}
 	return nil
 }
@@ -26,6 +48,9 @@ func (e *Env) setSource(buf []byte) {
 	e.source.SetSource(buf)
 }
 
+// merges the "sendTables" message. "sendTables" is a deeply misleading name,
+// but it's the name the structure is given in the protobufs. sendTables
+// contains the type definitions that define our entity type system.
 func (e *Env) mergeSendTables(m *dota.CDemoSendTables) error {
 	Debug.Printf("merge send tables")
 
@@ -88,4 +113,30 @@ func (e *Env) fillClasses(flat *dota.CSVCMsg_FlattenedSerializer) {
 	}
 }
 
+func (e *Env) mergeClassInfo(m *dota.CDemoClassInfo) {
+	if e.netIds == nil {
+		e.netIds = make(map[int]string, len(m.GetClasses()))
+	}
+	for _, info := range m.GetClasses() {
+		id := info.GetClassId()
+		name := info.GetNetworkName()
+		table := info.GetTableName()
+		Debug.Printf("class info id: %d name: %s table: %s", id, name, table)
+		e.netIds[int(id)] = name
+	}
+}
+
 func (e *Env) symbol(id int) string { return e.symbols[id] }
+
+func (e *Env) syncBaseline() {
+	t := e.strings.TableForName("instancebaseline")
+	if t != nil {
+		e.syncBaselineTable(t)
+	}
+}
+
+func (e *Env) syncBaselineTable(t *stbl.Table) {
+	if e.classes == nil {
+		Debug.Printf("syncBaselines skipped: classes are nil")
+	}
+}

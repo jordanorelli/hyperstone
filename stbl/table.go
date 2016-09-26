@@ -61,7 +61,7 @@ func (t *Table) createEntries(br *bit.BufReader, n int) error {
 			}
 		}
 	}
-	return br.Err()
+	return nil
 }
 
 func (t *Table) updateEntries(br *bit.BufReader, n int) error {
