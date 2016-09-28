@@ -19,6 +19,35 @@ type selection struct {
 func (s selection) String() string { return fmt.Sprint(s.path()) }
 func (s selection) path() []int    { return s.vals[:s.count] }
 
+func (s selection) fillSlots(v slotted, r bit.Reader) error {
+	Debug.Printf("%v fill slots into %v", s, v)
+	return s.fillSlotsIter(0, v, r)
+}
+
+func (s selection) fillSlotsIter(offset int, dest slotted, r bit.Reader) error {
+	slot := s.vals[offset]
+	if s.count-offset <= 0 {
+		return fmt.Errorf("unable to fill selection %v having count %d at offset %d", s, s.count, offset)
+	}
+	switch s.count - offset {
+	case 1:
+		t := dest.slotType(slot)
+		v, err := t.read(r)
+		if err != nil {
+			return fmt.Errorf("unable to fill selection: %v", err)
+		}
+		dest.setSlotValue(slot, v)
+		return nil
+	default:
+		v := dest.getSlotValue(slot)
+		vs, ok := v.(slotted)
+		if !ok {
+			return fmt.Errorf("destination is not slotted")
+		}
+		return s.fillSlotsIter(offset+1, vs, r)
+	}
+}
+
 // selectionReader reads a set of field selections off of the wire. the
 // selections are represented as arrays of slot positions to be traversed in
 // order to select an entity slot.

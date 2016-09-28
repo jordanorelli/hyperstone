@@ -2,6 +2,7 @@ package ent
 
 import (
 	"github.com/golang/protobuf/proto"
+	"strconv"
 
 	"github.com/jordanorelli/hyperstone/bit"
 	"github.com/jordanorelli/hyperstone/dota"
@@ -11,14 +12,17 @@ import (
 type Env struct {
 	symbols symbolTable
 	source  bit.BufReader
-	classes map[string]classHistory
+	classes map[string]*classHistory
 	netIds  map[int]string
 	fields  []field
 	strings *stbl.Dict
 }
 
 func NewEnv() *Env {
-	e := &Env{strings: stbl.NewDict()}
+	e := &Env{
+		classes: make(map[string]*classHistory),
+		strings: stbl.NewDict(),
+	}
 	e.strings.WatchTable("instancebaseline", e.syncBaselineTable)
 	return e
 }
@@ -36,10 +40,10 @@ func (e *Env) Handle(m proto.Message) error {
 		if err := e.mergeSendTables(v); err != nil {
 			return err
 		}
-		e.syncBaseline()
 
 	case *dota.CDemoClassInfo:
 		e.mergeClassInfo(v)
+		e.syncBaseline()
 	}
 	return nil
 }
@@ -71,16 +75,17 @@ func (e *Env) mergeSendTables(m *dota.CDemoSendTables) error {
 // structs that fields may point to.
 func (e *Env) stubClasses(flat *dota.CSVCMsg_FlattenedSerializer) {
 	serializers := flat.GetSerializers()
-	if e.classes == nil {
-		e.classes = make(map[string]classHistory, len(serializers))
-	}
 	for _, s := range serializers {
 		name := e.symbol(int(s.GetSerializerNameSym()))
 		v := int(s.GetSerializerVersion())
-		if e.classes[name] == nil {
-			e.classes[name] = make(classHistory, 4)
+		c := &class{name: name, version: v}
+		Debug.Printf("new class: %s", c)
+		h := e.classes[name]
+		if h == nil {
+			h = new(classHistory)
+			e.classes[name] = h
 		}
-		e.classes[name][v] = &class{name: name, version: v}
+		h.add(c)
 	}
 }
 
@@ -104,7 +109,7 @@ func (e *Env) fillClasses(flat *dota.CSVCMsg_FlattenedSerializer) {
 	for _, s := range flat.GetSerializers() {
 		name := e.symbol(int(s.GetSerializerNameSym()))
 		v := int(s.GetSerializerVersion())
-		class := e.classes[name][v]
+		class := e.classes[name].version(v)
 
 		class.fields = make([]field, len(s.GetFieldsIndex()))
 		for i, id := range s.GetFieldsIndex() {
@@ -136,7 +141,48 @@ func (e *Env) syncBaseline() {
 }
 
 func (e *Env) syncBaselineTable(t *stbl.Table) {
-	if e.classes == nil {
+	if e.netIds == nil || len(e.netIds) == 0 {
+		Debug.Printf("syncBaselines skipped: net ids are nil")
+	}
+	if e.classes == nil || len(e.classes) == 0 {
 		Debug.Printf("syncBaselines skipped: classes are nil")
 	}
+
+	r := new(bit.BufReader)
+	for _, entry := range t.Entries() {
+		netId, err := strconv.Atoi(entry.Key)
+		if err != nil {
+			Debug.Printf("syncBaselines ignored bad key %s: %v", err)
+			continue
+		}
+		className := e.netIds[netId]
+		if className == "" {
+			Debug.Printf("syncBaselines couldn't find class with net id %d", netId)
+			continue
+		}
+		c := e.class(className)
+		if c == nil {
+			Debug.Printf("syncBaselines couldn't find class named %s", className)
+			continue
+		}
+		Debug.Printf("syncBaselines key: %s className: %s", entry.Key, c.name)
+		ent := c.nü()
+		r.SetSource(entry.Value)
+		if err := ent.read(r); err != nil {
+			Debug.Printf("syncBaselines failed to fill an entity: %v", err)
+		}
+	}
+}
+
+func (e *Env) class(name string) *class {
+	h := e.classes[name]
+	if h == nil {
+		return nil
+	}
+	return h.newest
+}
+
+func (e *Env) classVersion(name string, version int) *class {
+	h := e.classes[name]
+	return h.version(version)
 }

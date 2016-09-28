@@ -10,7 +10,14 @@ func vectorType(spec *typeSpec, env *Env) tÿpe {
 	if spec.encoder != "" {
 		return nil
 	}
-	return vector_t{elem: floatType(spec, env)}
+	t := floatType(spec, env)
+	if _, ok := t.(error); ok {
+		return t
+	}
+	if t == nil {
+		return nil
+	}
+	return vector_t{elem: t}
 }
 
 type vector_t struct {

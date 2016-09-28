@@ -16,21 +16,47 @@ func (c class) String() string {
 }
 
 func (c *class) read(r bit.Reader) (value, error) {
-	return nil, fmt.Errorf("fart")
+	bit.ReadBool(r) // ???
+	return c.nü(), nil
 }
 
-type classHistory map[int]*class
+func (c *class) nü() entity {
+	return entity{class: c, slots: make([]value, len(c.fields))}
+}
+
+type classHistory struct {
+	versions map[int]*class
+	oldest   *class
+	newest   *class
+}
+
+func (h *classHistory) add(c *class) {
+	if h.oldest == nil || c.version < h.oldest.version {
+		h.oldest = c
+	}
+	if h.newest == nil || c.version > h.newest.version {
+		h.newest = c
+	}
+	if h.versions == nil {
+		h.versions = make(map[int]*class)
+	}
+	h.versions[c.version] = c
+}
+
+func (h *classHistory) version(v int) *class {
+	if h.versions == nil {
+		return nil
+	}
+	return h.versions[v]
+}
 
 func classType(spec *typeSpec, env *Env) tÿpe {
 	if spec.serializer != "" {
-		h := env.classes[spec.serializer]
-		if h != nil {
-			class := h[spec.serializerV]
-			if class != nil {
-				return class
-			}
-			return typeError("class %s exists for spec serializer but can't find version %d", spec.serializer, spec.serializerV)
+		c := env.classVersion(spec.serializer, spec.serializerV)
+		if c != nil {
+			return c
 		}
+		return typeError("unable to find class named %s with version %d", spec.serializer, spec.serializerV)
 	}
 	return nil
 }

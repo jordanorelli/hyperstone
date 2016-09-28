@@ -34,7 +34,14 @@ func parseTypeSpec(spec *typeSpec, env *Env) tÿpe {
 		return nil
 	}
 	return coalesce(arrayType, atomType, floatType, handleType, qAngleType,
-		hSeqType, genericType, vectorType, classType)
+		hSeqType, genericType, vectorType, classType, unknownType)
+}
+
+func unknownType(spec *typeSpec, env *Env) tÿpe {
+	Debug.Printf("Unknown Type: %v", spec)
+	return typeFn(func(r bit.Reader) (value, error) {
+		return bit.ReadVarInt(r), r.Err()
+	})
 }
 
 // a type error is both an error and a type. It represents a type that we were
