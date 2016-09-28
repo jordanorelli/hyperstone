@@ -1,6 +1,7 @@
 package ent
 
 import (
+	"fmt"
 	"github.com/jordanorelli/hyperstone/bit"
 )
 
@@ -22,6 +23,10 @@ func vectorType(spec *typeSpec, env *Env) tÿpe {
 
 type vector_t struct {
 	elem tÿpe
+}
+
+func (t vector_t) typeName() string {
+	return fmt.Sprintf("vector:%s", t.elem.typeName())
 }
 
 func (t vector_t) read(r bit.Reader) (value, error) {

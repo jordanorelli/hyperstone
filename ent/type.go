@@ -9,11 +9,16 @@ import (
 
 type tÿpe interface {
 	read(bit.Reader) (value, error)
+	typeName() string
 }
 
-type typeFn func(bit.Reader) (value, error)
+type typeLiteral struct {
+	name   string
+	readFn func(r bit.Reader) (value, error)
+}
 
-func (fn typeFn) read(r bit.Reader) (value, error) { return fn(r) }
+func (t typeLiteral) typeName() string                 { return t.name }
+func (t typeLiteral) read(r bit.Reader) (value, error) { return t.readFn(r) }
 
 type typeParseFn func(*typeSpec, *Env) tÿpe
 
@@ -39,9 +44,12 @@ func parseTypeSpec(spec *typeSpec, env *Env) tÿpe {
 
 func unknownType(spec *typeSpec, env *Env) tÿpe {
 	Debug.Printf("Unknown Type: %v", spec)
-	return typeFn(func(r bit.Reader) (value, error) {
-		return bit.ReadVarInt(r), r.Err()
-	})
+	return typeLiteral{
+		name: fmt.Sprintf("unknown:%s", spec.typeName),
+		readFn: func(r bit.Reader) (value, error) {
+			return bit.ReadVarInt(r), r.Err()
+		},
+	}
 }
 
 // a type error is both an error and a type. It represents a type that we were
@@ -54,7 +62,8 @@ func typeError(t string, args ...interface{}) tÿpe {
 
 type error_t string
 
-func (e error_t) Error() string { return string(e) }
+func (e error_t) typeName() string { return "error" }
+func (e error_t) Error() string    { return string(e) }
 func (e error_t) read(r bit.Reader) (value, error) {
 	return nil, fmt.Errorf("type error: %s", string(e))
 }

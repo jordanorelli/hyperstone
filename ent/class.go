@@ -15,6 +15,10 @@ func (c class) String() string {
 	return fmt.Sprintf("<%s.%d>", c.name, c.version)
 }
 
+func (c class) typeName() string {
+	return fmt.Sprintf("class:%s", c.name)
+}
+
 func (c *class) read(r bit.Reader) (value, error) {
 	bit.ReadBool(r) // ???
 	return c.nü(), nil

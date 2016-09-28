@@ -10,7 +10,10 @@ func hSeqType(spec *typeSpec, env *Env) tÿpe {
 	}
 
 	Debug.Printf("  hsequence type")
-	return typeFn(func(r bit.Reader) (value, error) {
-		return bit.ReadVarInt(r) - 1, r.Err()
-	})
+	return typeLiteral{
+		"HSequence",
+		func(r bit.Reader) (value, error) {
+			return bit.ReadVarInt(r) - 1, r.Err()
+		},
+	}
 }

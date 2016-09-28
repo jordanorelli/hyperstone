@@ -24,9 +24,12 @@ func genericType(spec *typeSpec, env *Env) tÿpe {
 
 	switch genericName {
 	case "CHandle", "CStrongHandle":
-		return typeFn(func(r bit.Reader) (value, error) {
-			return handle(bit.ReadVarInt(r)), r.Err()
-		})
+		return typeLiteral{
+			fmt.Sprintf("handle:%s", genericName),
+			func(r bit.Reader) (value, error) {
+				return handle(bit.ReadVarInt(r)), r.Err()
+			},
+		}
 	case "CUtlVector":
 		return cutl_vector_t{elem}
 	default:
@@ -70,6 +73,10 @@ func genericName(name string) ([2]string, error) {
 
 type cutl_vector_t struct {
 	elem tÿpe
+}
+
+func (t cutl_vector_t) typeName() string {
+	return fmt.Sprintf("vector:%s", t.elem.typeName())
 }
 
 func (t cutl_vector_t) read(r bit.Reader) (value, error) {

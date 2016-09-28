@@ -14,7 +14,10 @@ func handleType(spec *typeSpec, env *Env) tÿpe {
 	}
 
 	Debug.Printf("  handle type")
-	return typeFn(func(r bit.Reader) (value, error) {
-		return handle(bit.ReadVarInt(r)), r.Err()
-	})
+	return typeLiteral{
+		"handle:CGameSceneNodeHandle",
+		func(r bit.Reader) (value, error) {
+			return handle(bit.ReadVarInt(r)), r.Err()
+		},
+	}
 }

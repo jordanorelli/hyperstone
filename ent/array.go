@@ -1,6 +1,7 @@
 package ent
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -47,6 +48,8 @@ type array_t struct {
 	elem  tÿpe
 	count int
 }
+
+func (t array_t) typeName() string { return fmt.Sprintf("array:%s", t.elem.typeName()) }
 
 func (t array_t) read(r bit.Reader) (value, error) {
 	var err error
