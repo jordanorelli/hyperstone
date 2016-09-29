@@ -24,7 +24,7 @@ func genericType(spec *typeSpec, env *Env) tÿpe {
 
 	switch genericName {
 	case "CHandle", "CStrongHandle":
-		t := handle_t(fmt.Sprintf("%s<%s>", genericName, spec.typeName))
+		t := handle_t(fmt.Sprintf("%s<%s>", genericName, elem.typeName()))
 		return &t
 	case "CUtlVector":
 		return &cutl_vector_t{elem}

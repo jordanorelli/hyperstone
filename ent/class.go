@@ -13,7 +13,7 @@ type class struct {
 func (c class) String() string { return c.typeName() }
 
 func (c class) typeName() string {
-	return fmt.Sprintf("%s.%d", c.name, c.version)
+	return fmt.Sprintf("%s_v%d", c.name, c.version)
 }
 
 func (c *class) nü() value {

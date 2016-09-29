@@ -178,7 +178,7 @@ func (e *Env) syncBaselineTable(t *stbl.Table) {
 		Debug.Printf("selections: %v", selections)
 		for _, s := range selections {
 			if err := s.fillSlots(ent, r); err != nil {
-				Debug.Printf("unable to fill slots for %s: %v", className, err)
+				Debug.Printf("unable to fill selection %s for %s: %v", s, className, err)
 			}
 		}
 	}

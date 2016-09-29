@@ -77,3 +77,11 @@ func (a array) String() string {
 	}
 	return fmt.Sprintf("%s(%d)%v", a.t.typeName(), len(a.slots), a.slots)
 }
+
+func (a array) slotType(int) tÿpe     { return a.t.elem }
+func (a array) slotName(n int) string { return strconv.Itoa(n) }
+func (a array) setSlotValue(slot int, v value) {
+	// TODO: type check here?
+	a.slots[slot] = v
+}
+func (a array) getSlotValue(slot int) value { return a.slots[slot] }

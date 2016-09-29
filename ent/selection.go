@@ -46,7 +46,7 @@ func (s selection) fillSlotsIter(offset int, dest slotted, path string, r bit.Re
 		}
 		vs, ok := v.(slotted)
 		if !ok {
-			return fmt.Errorf("dest isn't slotted")
+			return fmt.Errorf("dest %s (%s) isn't slotted", dest.slotName(slot), dest.slotType(slot).typeName())
 		}
 		return s.fillSlotsIter(offset+1, vs, fmt.Sprintf("%s.%s", path, dest.slotName(slot)), r)
 	}
