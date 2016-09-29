@@ -67,11 +67,11 @@ type selectionReader struct {
 	all [1024]selection
 }
 
-func (r *selectionReader) readSelections(br bit.Reader, n node) ([]selection, error) {
+func (r *selectionReader) readSelections(br bit.Reader) ([]selection, error) {
 	r.cur.count = 1
 	r.cur.vals[0] = -1
 	r.count = 0
-	for fn := walk(n, br); fn != nil; fn = walk(n, br) {
+	for fn := walk(huffRoot, br); fn != nil; fn = walk(huffRoot, br) {
 		if err := br.Err(); err != nil {
 			return nil, fmt.Errorf("unable to read selection: bit reader error: %v", err)
 		}

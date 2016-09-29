@@ -72,5 +72,8 @@ func (a array) read(r bit.Reader) error {
 }
 
 func (a array) String() string {
-	return fmt.Sprintf("%s%v", a.t.typeName(), a.slots)
+	if len(a.slots) > 8 {
+		return fmt.Sprintf("%s(%d)%v...", a.t.typeName(), len(a.slots), a.slots[:8])
+	}
+	return fmt.Sprintf("%s(%d)%v", a.t.typeName(), len(a.slots), a.slots)
 }

@@ -111,7 +111,7 @@ func (v *uint32_v) read(r bit.Reader) error {
 }
 
 func (v uint32_v) String() string {
-	return strconv.FormatUint(uint64(v), 0)
+	return strconv.FormatUint(uint64(v), 10)
 }
 
 // ------------------------------------------------------------------------------

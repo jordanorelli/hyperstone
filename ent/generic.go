@@ -24,7 +24,7 @@ func genericType(spec *typeSpec, env *Env) tÿpe {
 
 	switch genericName {
 	case "CHandle", "CStrongHandle":
-		t := handle_t(spec.typeName)
+		t := handle_t(fmt.Sprintf("%s<%s>", genericName, spec.typeName))
 		return &t
 	case "CUtlVector":
 		return &cutl_vector_t{elem}
@@ -76,7 +76,7 @@ func (t *cutl_vector_t) nü() value {
 }
 
 func (t cutl_vector_t) typeName() string {
-	return fmt.Sprintf("vector:%s", t.elem.typeName())
+	return fmt.Sprintf("CUtlVector<%s>", t.elem.typeName())
 }
 
 type cutl_vector struct {
@@ -93,5 +93,8 @@ func (v *cutl_vector) read(r bit.Reader) error {
 }
 
 func (v cutl_vector) String() string {
-	return fmt.Sprintf("%s<%v>", v.t.typeName(), v.slots)
+	if len(v.slots) > 8 {
+		return fmt.Sprintf("%s(%d)%v...", v.t.typeName(), len(v.slots), v.slots[:8])
+	}
+	return fmt.Sprintf("%s(%d)%v", v.t.typeName(), len(v.slots), v.slots)
 }

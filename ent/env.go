@@ -113,6 +113,7 @@ func (e *Env) fillClasses(flat *dota.CSVCMsg_FlattenedSerializer) {
 
 		class.fields = make([]field, len(s.GetFieldsIndex()))
 		for i, id := range s.GetFieldsIndex() {
+			Debug.Printf("class %s has field %s (%s)", name, e.fields[id].name, e.fields[id].typeName())
 			class.fields[i] = e.fields[id]
 		}
 	}
@@ -149,6 +150,7 @@ func (e *Env) syncBaselineTable(t *stbl.Table) {
 	}
 
 	r := new(bit.BufReader)
+	sr := new(selectionReader)
 	for _, entry := range t.Entries() {
 		netId, err := strconv.Atoi(entry.Key)
 		if err != nil {
@@ -166,10 +168,18 @@ func (e *Env) syncBaselineTable(t *stbl.Table) {
 			continue
 		}
 		Debug.Printf("syncBaselines key: %s className: %s", entry.Key, c.name)
-		ent := c.nü()
+		ent := c.nü().(*entity)
 		r.SetSource(entry.Value)
-		if err := ent.read(r); err != nil {
-			Debug.Printf("syncBaselines failed to fill an entity: %v", err)
+		selections, err := sr.readSelections(r)
+		if err != nil {
+			Debug.Printf("unable to read selections for %s: %v", className, err)
+			continue
+		}
+		Debug.Printf("selections: %v", selections)
+		for _, s := range selections {
+			if err := s.fillSlots(ent, r); err != nil {
+				Debug.Printf("unable to fill slots for %s: %v", className, err)
+			}
 		}
 	}
 }

@@ -2,7 +2,6 @@ package ent
 
 import (
 	"fmt"
-	"github.com/jordanorelli/hyperstone/bit"
 )
 
 type class struct {
@@ -11,17 +10,10 @@ type class struct {
 	fields  []field
 }
 
-func (c class) String() string {
-	return fmt.Sprintf("<%s.%d>", c.name, c.version)
-}
+func (c class) String() string { return c.typeName() }
 
 func (c class) typeName() string {
-	return fmt.Sprintf("class:%s", c.name)
-}
-
-func (c *class) read(r bit.Reader) (value, error) {
-	bit.ReadBool(r) // ???
-	return c.nü(), nil
+	return fmt.Sprintf("%s.%d", c.name, c.version)
 }
 
 func (c *class) nü() value {

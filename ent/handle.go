@@ -25,7 +25,7 @@ func (h *handle) read(r bit.Reader) error {
 }
 
 func (h handle) String() string {
-	return fmt.Sprintf("handle<%s>: %d", h.t.typeName(), h.id)
+	return fmt.Sprintf("%s:%d", h.t.typeName(), h.id)
 }
 
 func handleType(spec *typeSpec, env *Env) tÿpe {

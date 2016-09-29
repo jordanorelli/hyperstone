@@ -24,7 +24,7 @@ type vector_t struct {
 }
 
 func (t vector_t) typeName() string {
-	return fmt.Sprintf("vector:%s", t.elem.typeName())
+	return fmt.Sprintf("vector<%s>", t.elem.typeName())
 }
 
 func (t *vector_t) nü() value {

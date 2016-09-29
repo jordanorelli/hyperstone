@@ -134,6 +134,7 @@ var hlist = nodeList{
 		r.add(int(bit.ReadUBitVarFP(br)) + 5)
 	}},
 	lNode{"PushOneLeftDeltaOneRightNonZero", 8, 2942, func(r *selectionReader, br bit.Reader) {
+		Debug.Printf("PushOneLeftDeltaOneRightNonZero")
 		r.add(1)
 		r.push(int(bit.ReadUBitVarFP(br)))
 	}},
@@ -267,4 +268,4 @@ var hlist = nodeList{
 	}},
 }
 
-var htree = makeTree(hlist)
+var huffRoot = makeTree(hlist)
