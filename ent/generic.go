@@ -24,14 +24,10 @@ func genericType(spec *typeSpec, env *Env) tÿpe {
 
 	switch genericName {
 	case "CHandle", "CStrongHandle":
-		return typeLiteral{
-			fmt.Sprintf("handle:%s", genericName),
-			func(r bit.Reader) (value, error) {
-				return handle(bit.ReadVarInt(r)), r.Err()
-			},
-		}
+		t := handle_t(spec.typeName)
+		return &t
 	case "CUtlVector":
-		return cutl_vector_t{elem}
+		return &cutl_vector_t{elem}
 	default:
 		return typeError("unknown generic name: %v", parts[0])
 	}
@@ -75,11 +71,27 @@ type cutl_vector_t struct {
 	elem tÿpe
 }
 
+func (t *cutl_vector_t) nü() value {
+	return &cutl_vector{t: t}
+}
+
 func (t cutl_vector_t) typeName() string {
 	return fmt.Sprintf("vector:%s", t.elem.typeName())
 }
 
-func (t cutl_vector_t) read(r bit.Reader) (value, error) {
+type cutl_vector struct {
+	t     tÿpe
+	slots []value
+}
+
+func (v *cutl_vector) tÿpe() tÿpe { return v.t }
+
+func (v *cutl_vector) read(r bit.Reader) error {
 	count := bit.ReadVarInt32(r)
-	return make(array, count), r.Err()
+	v.slots = make([]value, count)
+	return r.Err()
+}
+
+func (v cutl_vector) String() string {
+	return fmt.Sprintf("%s<%v>", v.t.typeName(), v.slots)
 }

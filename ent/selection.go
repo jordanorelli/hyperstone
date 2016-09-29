@@ -20,31 +20,35 @@ func (s selection) String() string { return fmt.Sprint(s.path()) }
 func (s selection) path() []int    { return s.vals[:s.count] }
 
 func (s selection) fillSlots(v slotted, r bit.Reader) error {
-	Debug.Printf("%v fill slots into %v", s, v)
-	return s.fillSlotsIter(0, v, r)
+	return s.fillSlotsIter(0, v, v.tÿpe().typeName(), r)
 }
 
-func (s selection) fillSlotsIter(offset int, dest slotted, r bit.Reader) error {
+func (s selection) fillSlotsIter(offset int, dest slotted, path string, r bit.Reader) error {
 	slot := s.vals[offset]
 	if s.count-offset <= 0 {
 		return fmt.Errorf("unable to fill selection %v having count %d at offset %d", s, s.count, offset)
 	}
 	switch s.count - offset {
 	case 1:
-		t := dest.slotType(slot)
-		v, err := t.read(r)
-		if err != nil {
+		v := dest.slotType(slot).nü()
+		if err := v.read(r); err != nil {
 			return fmt.Errorf("unable to fill selection: %v", err)
 		}
+		old := dest.getSlotValue(slot)
 		dest.setSlotValue(slot, v)
+		Debug.Printf("%v %s.%s (%s) %v -> %v", s, path, dest.slotName(slot), dest.slotType(slot).typeName(), old, v)
 		return nil
 	default:
 		v := dest.getSlotValue(slot)
+		if v == nil {
+			v = dest.slotType(slot).nü()
+			dest.setSlotValue(slot, v)
+		}
 		vs, ok := v.(slotted)
 		if !ok {
-			return fmt.Errorf("destination is not slotted")
+			return fmt.Errorf("dest isn't slotted")
 		}
-		return s.fillSlotsIter(offset+1, vs, r)
+		return s.fillSlotsIter(offset+1, vs, fmt.Sprintf("%s.%s", path, dest.slotName(slot)), r)
 	}
 }
 

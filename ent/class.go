@@ -24,8 +24,8 @@ func (c *class) read(r bit.Reader) (value, error) {
 	return c.nü(), nil
 }
 
-func (c *class) nü() entity {
-	return entity{class: c, slots: make([]value, len(c.fields))}
+func (c *class) nü() value {
+	return &entity{class: c, slots: make([]value, len(c.fields))}
 }
 
 type classHistory struct {

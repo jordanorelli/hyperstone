@@ -8,17 +8,17 @@ import (
 )
 
 type tÿpe interface {
-	read(bit.Reader) (value, error)
+	nü() value
 	typeName() string
 }
 
 type typeLiteral struct {
-	name   string
-	readFn func(r bit.Reader) (value, error)
+	name  string
+	newFn func() value
 }
 
-func (t typeLiteral) typeName() string                 { return t.name }
-func (t typeLiteral) read(r bit.Reader) (value, error) { return t.readFn(r) }
+func (t typeLiteral) nü() value        { return t.newFn() }
+func (t typeLiteral) typeName() string { return t.name }
 
 type typeParseFn func(*typeSpec, *Env) tÿpe
 
@@ -42,14 +42,32 @@ func parseTypeSpec(spec *typeSpec, env *Env) tÿpe {
 		hSeqType, genericType, vectorType, classType, unknownType)
 }
 
+type unknown_t string
+
+func (t unknown_t) typeName() string { return string(t) }
+func (t *unknown_t) nü() value {
+	return &unknown_v{t: t}
+}
+
+type unknown_v struct {
+	t tÿpe
+	v uint64
+}
+
+func (v unknown_v) tÿpe() tÿpe { return v.t }
+func (v *unknown_v) read(r bit.Reader) error {
+	v.v = bit.ReadVarInt(r)
+	return r.Err()
+}
+
+func (v unknown_v) String() string {
+	return fmt.Sprintf("%s(unknown):%d", v.t.typeName(), v.v)
+}
+
 func unknownType(spec *typeSpec, env *Env) tÿpe {
 	Debug.Printf("Unknown Type: %v", spec)
-	return typeLiteral{
-		name: fmt.Sprintf("unknown:%s", spec.typeName),
-		readFn: func(r bit.Reader) (value, error) {
-			return bit.ReadVarInt(r), r.Err()
-		},
-	}
+	t := unknown_t(spec.typeName)
+	return &t
 }
 
 // a type error is both an error and a type. It represents a type that we were
@@ -62,11 +80,9 @@ func typeError(t string, args ...interface{}) tÿpe {
 
 type error_t string
 
+func (e error_t) nü() value        { panic("can't create an error val like that") }
 func (e error_t) typeName() string { return "error" }
 func (e error_t) Error() string    { return string(e) }
-func (e error_t) read(r bit.Reader) (value, error) {
-	return nil, fmt.Errorf("type error: %s", string(e))
-}
 
 type typeSpec struct {
 	name        string

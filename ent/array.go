@@ -20,7 +20,7 @@ func arrayType(spec *typeSpec, env *Env) tÿpe {
 	elemSpec := *spec
 	elemSpec.typeName = elemName
 	elemType := parseTypeSpec(&elemSpec, env)
-	return array_t{elemType, count}
+	return &array_t{elemType, count}
 }
 
 func parseArrayName(s string) (string, int) {
@@ -49,18 +49,28 @@ type array_t struct {
 	count int
 }
 
+func (t *array_t) nü() value       { return array{t: t, slots: make([]value, t.count)} }
 func (t array_t) typeName() string { return fmt.Sprintf("array:%s", t.elem.typeName()) }
 
-func (t array_t) read(r bit.Reader) (value, error) {
-	var err error
-	v := make(array, t.count)
-	for i := range v {
-		v[i], err = t.elem.read(r)
-		if err != nil {
-			return nil, wrap(err, "array read error at index %d", i)
-		}
-	}
-	return v, r.Err()
+type array struct {
+	t     *array_t
+	slots []value
 }
 
-type array []value
+func (a array) tÿpe() tÿpe { return a.t }
+
+func (a array) read(r bit.Reader) error {
+	for i := range a.slots {
+		if a.slots[i] == nil {
+			a.slots[i] = a.t.elem.nü()
+		}
+		if err := a.slots[i].read(r); err != nil {
+			return wrap(err, "array read error at index %d", i)
+		}
+	}
+	return r.Err()
+}
+
+func (a array) String() string {
+	return fmt.Sprintf("%s%v", a.t.typeName(), a.slots)
+}

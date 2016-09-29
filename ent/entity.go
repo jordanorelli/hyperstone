@@ -1,6 +1,7 @@
 package ent
 
 import (
+	"fmt"
 	"github.com/jordanorelli/hyperstone/bit"
 )
 
@@ -31,6 +32,12 @@ func (e *entity) className() string {
 	return "<None>"
 }
 
+func (e *entity) String() string {
+	return fmt.Sprintf("%s{%v}", e.class.typeName(), e.slots)
+}
+
+func (e *entity) tÿpe() tÿpe                  { return e.class }
 func (e *entity) slotType(i int) tÿpe         { return e.class.fields[i].tÿpe }
+func (e *entity) slotName(i int) string       { return e.class.fields[i].name }
 func (e *entity) setSlotValue(i int, v value) { e.slots[i] = v }
 func (e *entity) getSlotValue(i int) value    { return e.slots[i] }

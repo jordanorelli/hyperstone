@@ -2,6 +2,7 @@ package ent
 
 import (
 	"math"
+	"strconv"
 
 	"github.com/jordanorelli/hyperstone/bit"
 )
@@ -23,12 +24,7 @@ func floatType(spec *typeSpec, env *Env) tÿpe {
 	}
 	if spec.encoder == "coord" {
 		Debug.Printf("  coord float type")
-		return typeLiteral{
-			"float:coord",
-			func(r bit.Reader) (value, error) {
-				return bit.ReadCoord(r), r.Err()
-			},
-		}
+		return coord_t
 	}
 	if spec.serializer == "simulationtime" {
 		return nil
@@ -36,16 +32,48 @@ func floatType(spec *typeSpec, env *Env) tÿpe {
 	switch spec.bits {
 	case 0, 32:
 		Debug.Printf("  std float type")
-		return typeLiteral{
-			"float:std",
-			func(r bit.Reader) (value, error) {
-				// TODO: check uint32 overflow here?
-				return math.Float32frombits(uint32(r.ReadBits(32))), r.Err()
-			},
-		}
+		return float_t
 	default:
 		return qFloatType(spec, env)
 	}
+}
+
+var coord_t = &typeLiteral{
+	name: "coord",
+	newFn: func() value {
+		return new(coord_v)
+	},
+}
+
+type coord_v float32
+
+func (v coord_v) tÿpe() tÿpe { return coord_t }
+func (v *coord_v) read(r bit.Reader) error {
+	*v = coord_v(bit.ReadCoord(r))
+	return r.Err()
+}
+
+func (v coord_v) String() string {
+	return strconv.FormatFloat(float64(v), 'f', 3, 32)
+}
+
+var float_t = &typeLiteral{
+	name: "float",
+	newFn: func() value {
+		return new(float_v)
+	},
+}
+
+type float_v float32
+
+func (v float_v) tÿpe() tÿpe { return float_t }
+func (v *float_v) read(r bit.Reader) error {
+	*v = float_v(math.Float32frombits(uint32(r.ReadBits(32))))
+	return r.Err()
+}
+
+func (v float_v) String() string {
+	return strconv.FormatFloat(float64(v), 'f', 3, 32)
 }
 
 func qFloatType(spec *typeSpec, env *Env) tÿpe {
@@ -56,7 +84,7 @@ func qFloatType(spec *typeSpec, env *Env) tÿpe {
 		return typeError("quantized float has invalid negative range")
 	}
 
-	t := qfloat_t{typeSpec: *spec}
+	t := &qfloat_t{typeSpec: *spec}
 	t.span = t.high - t.low
 	t.intervals = uint(1<<t.bits - 1)
 	t.interval = t.span / float32(t.intervals)
@@ -87,11 +115,24 @@ type qfloat_t struct {
 	special   *float32
 }
 
+func (t *qfloat_t) nü() value       { return &qfloat_v{t: t} }
 func (t qfloat_t) typeName() string { return "qfloat" }
 
-func (t qfloat_t) read(r bit.Reader) (value, error) {
-	if t.special != nil && bit.ReadBool(r) {
-		return *t.special, nil
+type qfloat_v struct {
+	t *qfloat_t
+	v float32
+}
+
+func (v qfloat_v) tÿpe() tÿpe { return v.t }
+func (v *qfloat_v) read(r bit.Reader) error {
+	if v.t.special != nil && bit.ReadBool(r) {
+		v.v = *v.t.special
+	} else {
+		v.v = v.t.low + float32(r.ReadBits(v.t.bits))*v.t.interval
 	}
-	return t.low + float32(r.ReadBits(t.bits))*t.interval, r.Err()
+	return r.Err()
+}
+
+func (v qfloat_v) String() string {
+	return strconv.FormatFloat(float64(v.v), 'f', 3, 32)
 }

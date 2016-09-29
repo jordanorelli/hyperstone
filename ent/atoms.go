@@ -1,73 +1,252 @@
 package ent
 
 import (
+	"fmt"
 	"github.com/jordanorelli/hyperstone/bit"
+	"strconv"
 )
 
-var atom_types = []typeLiteral{
-	{
-		"bool",
-		func(r bit.Reader) (value, error) {
-			return bit.ReadBool(r), r.Err()
-		},
+// ------------------------------------------------------------------------------
+// bool
+// ------------------------------------------------------------------------------
+
+var bool_t = &typeLiteral{
+	name: "bool",
+	newFn: func() value {
+		return new(bool_v)
 	},
-	{
-		"uint8",
-		func(r bit.Reader) (value, error) {
-			// TODO: bounds check here
-			return uint8(bit.ReadVarInt(r)), r.Err()
-		},
+}
+
+type bool_v bool
+
+func (v bool_v) tÿpe() tÿpe { return bool_t }
+
+func (v *bool_v) read(r bit.Reader) error {
+	*v = bool_v(bit.ReadBool(r))
+	return r.Err()
+}
+
+func (v bool_v) String() string {
+	if v {
+		return "true"
+	}
+	return "false"
+}
+
+// ------------------------------------------------------------------------------
+// uint8
+// ------------------------------------------------------------------------------
+
+var uint8_t = &typeLiteral{
+	name: "uint8",
+	newFn: func() value {
+		return new(uint8_v)
 	},
-	{
-		"uint16",
-		func(r bit.Reader) (value, error) {
-			// TODO: bounds check here
-			return uint16(bit.ReadVarInt(r)), r.Err()
-		},
+}
+
+type uint8_v uint8
+
+func (v uint8_v) tÿpe() tÿpe { return uint8_t }
+func (v *uint8_v) read(r bit.Reader) error {
+	u := bit.ReadVarInt(r)
+	if u > 1<<8-1 {
+		return fmt.Errorf("uint8 overflow: %d", u)
+	}
+	*v = uint8_v(u)
+	return r.Err()
+}
+
+func (v uint8_v) String() string {
+	return strconv.FormatUint(uint64(v), 10)
+}
+
+// ------------------------------------------------------------------------------
+// uint16
+// ------------------------------------------------------------------------------
+
+var uint16_t = &typeLiteral{
+	name: "uint16",
+	newFn: func() value {
+		return new(uint16_v)
 	},
-	{
-		"uint32",
-		func(r bit.Reader) (value, error) {
-			return bit.ReadVarInt32(r), r.Err()
-		},
+}
+
+type uint16_v uint16
+
+func (v uint16_v) tÿpe() tÿpe { return uint16_t }
+func (v *uint16_v) read(r bit.Reader) error {
+	u := bit.ReadVarInt(r)
+	if u > 1<<16-1 {
+		return fmt.Errorf("uint16 overflow: %d", u)
+	}
+	*v = uint16_v(u)
+	return r.Err()
+}
+
+func (v uint16_v) String() string {
+	return strconv.FormatUint(uint64(v), 10)
+}
+
+// ------------------------------------------------------------------------------
+// uint32
+// ------------------------------------------------------------------------------
+
+var uint32_t = &typeLiteral{
+	name: "uint32",
+	newFn: func() value {
+		return new(uint32_v)
 	},
-	{
-		"uint64",
-		func(r bit.Reader) (value, error) {
-			return bit.ReadVarInt(r), r.Err()
-		},
+}
+
+type uint32_v uint32
+
+func (v uint32_v) tÿpe() tÿpe { return uint32_t }
+func (v *uint32_v) read(r bit.Reader) error {
+	u := bit.ReadVarInt(r)
+	if u > 1<<32-1 {
+		return fmt.Errorf("uint32 overflow: %d", u)
+	}
+	*v = uint32_v(u)
+	return r.Err()
+}
+
+func (v uint32_v) String() string {
+	return strconv.FormatUint(uint64(v), 0)
+}
+
+// ------------------------------------------------------------------------------
+// uint64
+// ------------------------------------------------------------------------------
+
+var uint64_t = &typeLiteral{
+	name: "uint64",
+	newFn: func() value {
+		return new(uint64_v)
 	},
-	{
-		"int8",
-		func(r bit.Reader) (value, error) {
-			// TODO: bounds check here
-			return int8(bit.ReadZigZag32(r)), r.Err()
-		},
+}
+
+type uint64_v uint64
+
+func (v uint64_v) tÿpe() tÿpe { return uint64_t }
+func (v *uint64_v) read(r bit.Reader) error {
+	*v = uint64_v(bit.ReadVarInt(r))
+	return r.Err()
+}
+
+func (v uint64_v) String() string {
+	return strconv.FormatUint(uint64(v), 10)
+}
+
+// ------------------------------------------------------------------------------
+// int8
+// ------------------------------------------------------------------------------
+
+var int8_t = &typeLiteral{
+	name: "int8",
+	newFn: func() value {
+		return new(int8_v)
 	},
-	{
-		"int32",
-		func(r bit.Reader) (value, error) {
-			return bit.ReadZigZag32(r), r.Err()
-		},
+}
+
+type int8_v int8
+
+func (v int8_v) tÿpe() tÿpe { return int8_t }
+func (v *int8_v) read(r bit.Reader) error {
+	// TODO: bounds check here?
+	*v = int8_v(bit.ReadZigZag32(r))
+	return r.Err()
+}
+
+func (v int8_v) String() string {
+	return strconv.FormatInt(int64(v), 10)
+}
+
+// ------------------------------------------------------------------------------
+// int32
+// ------------------------------------------------------------------------------
+
+var int32_t = &typeLiteral{
+	name: "int32",
+	newFn: func() value {
+		return new(int32_v)
 	},
-	{
-		"CUtlStringToken",
-		func(r bit.Reader) (value, error) {
-			return bit.ReadVarInt(r), r.Err()
-		},
+}
+
+type int32_v int32
+
+func (v int32_v) tÿpe() tÿpe { return int32_t }
+func (v *int32_v) read(r bit.Reader) error {
+	*v = int32_v(bit.ReadZigZag32(r))
+	return r.Err()
+}
+
+func (v int32_v) String() string {
+	return strconv.FormatInt(int64(v), 10)
+}
+
+// ------------------------------------------------------------------------------
+// CUtlStringToken
+//
+// weirdly, this type isn't a string; it's actually a number. The number
+// presumably indicates some value on a symbol table.
+// ------------------------------------------------------------------------------
+
+var stringToken_t = &typeLiteral{
+	name: "CUtlStringToken",
+	newFn: func() value {
+		return new(stringToken_v)
 	},
-	{
-		"Color",
-		func(r bit.Reader) (value, error) {
-			u := bit.ReadVarInt(r)
-			return color{
-				r: uint8(u >> 6 & 0xff),
-				g: uint8(u >> 4 & 0xff),
-				b: uint8(u >> 2 & 0xff),
-				a: uint8(u >> 0 & 0xff),
-			}, r.Err()
-		},
+}
+
+type stringToken_v uint64
+
+func (v stringToken_v) tÿpe() tÿpe { return stringToken_t }
+func (v *stringToken_v) read(r bit.Reader) error {
+	*v = stringToken_v(bit.ReadVarInt(r))
+	return r.Err()
+}
+
+func (v stringToken_v) String() string {
+	return fmt.Sprintf("token:%d", v)
+}
+
+// ------------------------------------------------------------------------------
+// Color
+// ------------------------------------------------------------------------------
+
+var color_t = &typeLiteral{
+	name: "Color",
+	newFn: func() value {
+		return new(color)
 	},
+}
+
+type color struct{ r, g, b, a uint8 }
+
+func (c color) tÿpe() tÿpe { return color_t }
+func (c *color) read(r bit.Reader) error {
+	u := bit.ReadVarInt(r)
+	c.r = uint8(u >> 6 & 0xff)
+	c.g = uint8(u >> 4 & 0xff)
+	c.b = uint8(u >> 2 & 0xff)
+	c.a = uint8(u >> 0 & 0xff)
+	return r.Err()
+}
+
+func (c color) String() string {
+	return fmt.Sprintf("#%x%x%x%x", c.r, c.g, c.b, c.a)
+}
+
+var atom_types = []tÿpe{
+	bool_t,
+	uint8_t,
+	uint16_t,
+	uint32_t,
+	uint64_t,
+	int8_t,
+	int32_t,
+	stringToken_t,
+	color_t,
 }
 
 func atomType(spec *typeSpec, env *Env) tÿpe {
@@ -79,5 +258,3 @@ func atomType(spec *typeSpec, env *Env) tÿpe {
 	}
 	return nil
 }
-
-type color struct{ r, g, b, a uint8 }

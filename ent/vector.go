@@ -5,8 +5,6 @@ import (
 	"github.com/jordanorelli/hyperstone/bit"
 )
 
-type vector struct{ x, y, z float32 }
-
 func vectorType(spec *typeSpec, env *Env) tÿpe {
 	if spec.encoder != "" {
 		return nil
@@ -18,7 +16,7 @@ func vectorType(spec *typeSpec, env *Env) tÿpe {
 	if t == nil {
 		return nil
 	}
-	return vector_t{elem: t}
+	return &vector_t{elem: t}
 }
 
 type vector_t struct {
@@ -29,19 +27,41 @@ func (t vector_t) typeName() string {
 	return fmt.Sprintf("vector:%s", t.elem.typeName())
 }
 
-func (t vector_t) read(r bit.Reader) (value, error) {
-	var err error
-	var v interface{}
-	read := func(f *float32) {
-		if err != nil {
-			return
-		}
-		v, err = t.elem.read(r)
-		*f = v.(float32)
+func (t *vector_t) nü() value {
+	return &vector{t: t}
+}
+
+type vector struct {
+	t       tÿpe
+	x, y, z value
+}
+
+func (v vector) tÿpe() tÿpe { return v.t }
+
+func (v *vector) read(r bit.Reader) error {
+	if v.x == nil {
+		v.x = v.t.nü()
 	}
-	var out vector
-	read(&out.x)
-	read(&out.y)
-	read(&out.z)
-	return out, err
+	if v.y == nil {
+		v.y = v.t.nü()
+	}
+	if v.z == nil {
+		v.z = v.t.nü()
+	}
+
+	type fn func(bit.Reader) error
+	coalesce := func(fns ...fn) error {
+		for _, f := range fns {
+			if err := f(r); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	return coalesce(v.x.read, v.y.read, v.z.read)
+}
+
+func (v vector) String() string {
+	return fmt.Sprintf("vector<%s>{%s %s %s}", v.t.typeName, v.x, v.y, v.z)
 }
