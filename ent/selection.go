@@ -32,7 +32,7 @@ func (s selection) fillSlotsIter(offset int, dest slotted, path string, r bit.Re
 	case 1:
 		v := dest.slotType(slot).nü()
 		if err := v.read(r); err != nil {
-			return fmt.Errorf("unable to fill selection: %v", err)
+			return fmt.Errorf("unable to fill selection %v for %s.%s (%s): %v", s, path, dest.slotName(slot), dest.slotType(slot).typeName(), err)
 		}
 		old := dest.getSlotValue(slot)
 		dest.setSlotValue(slot, v)

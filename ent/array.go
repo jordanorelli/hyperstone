@@ -50,7 +50,7 @@ type array_t struct {
 }
 
 func (t *array_t) nü() value       { return array{t: t, slots: make([]value, t.count)} }
-func (t array_t) typeName() string { return fmt.Sprintf("array:%s", t.elem.typeName()) }
+func (t array_t) typeName() string { return fmt.Sprintf("%s[%d]", t.elem.typeName(), t.count) }
 
 type array struct {
 	t     *array_t

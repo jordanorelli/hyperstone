@@ -48,11 +48,7 @@ type uint8_v uint8
 
 func (v uint8_v) tÿpe() tÿpe { return uint8_t }
 func (v *uint8_v) read(r bit.Reader) error {
-	u := bit.ReadVarInt(r)
-	if u > 1<<8-1 {
-		return fmt.Errorf("uint8 overflow: %d", u)
-	}
-	*v = uint8_v(u)
+	*v = uint8_v(r.ReadBits(8))
 	return r.Err()
 }
 
@@ -75,11 +71,7 @@ type uint16_v uint16
 
 func (v uint16_v) tÿpe() tÿpe { return uint16_t }
 func (v *uint16_v) read(r bit.Reader) error {
-	u := bit.ReadVarInt(r)
-	if u > 1<<16-1 {
-		return fmt.Errorf("uint16 overflow: %d", u)
-	}
-	*v = uint16_v(u)
+	*v = uint16_v(bit.ReadVarInt16(r))
 	return r.Err()
 }
 

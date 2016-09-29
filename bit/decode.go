@@ -99,6 +99,26 @@ func ReadVarInt32(r Reader) uint32 {
 	return uint32(x)
 }
 
+// reads a 32bit varint
+func ReadVarInt16(r Reader) uint16 {
+	var (
+		x     uint64
+		b     uint64
+		shift uint
+	)
+	for ; shift < 16; shift += 7 {
+		b = r.ReadBits(8)
+		if r.Err() != nil {
+			return 0
+		}
+		x |= b & 0x7f << shift
+		if b&0x80 == 0 {
+			return uint16(x)
+		}
+	}
+	return uint16(x)
+}
+
 func ReadBool(r Reader) bool {
 	return r.ReadBits(1) != 0
 }

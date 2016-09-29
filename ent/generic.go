@@ -2,6 +2,7 @@ package ent
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/jordanorelli/hyperstone/bit"
@@ -80,7 +81,7 @@ func (t cutl_vector_t) typeName() string {
 }
 
 type cutl_vector struct {
-	t     tÿpe
+	t     *cutl_vector_t
 	slots []value
 }
 
@@ -98,3 +99,14 @@ func (v cutl_vector) String() string {
 	}
 	return fmt.Sprintf("%s(%d)%v", v.t.typeName(), len(v.slots), v.slots)
 }
+
+func (v *cutl_vector) slotType(int) tÿpe     { return v.t.elem }
+func (v *cutl_vector) slotName(n int) string { return strconv.Itoa(n) }
+func (v *cutl_vector) setSlotValue(slot int, val value) {
+	if slot == len(v.slots) {
+		v.slots = append(v.slots, val)
+	} else {
+		v.slots[slot] = val
+	}
+}
+func (v *cutl_vector) getSlotValue(slot int) value { return v.slots[slot] }

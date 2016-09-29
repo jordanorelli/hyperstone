@@ -2,6 +2,7 @@ package ent
 
 import (
 	"github.com/golang/protobuf/proto"
+	"os"
 	"strconv"
 
 	"github.com/jordanorelli/hyperstone/bit"
@@ -178,7 +179,8 @@ func (e *Env) syncBaselineTable(t *stbl.Table) {
 		Debug.Printf("selections: %v", selections)
 		for _, s := range selections {
 			if err := s.fillSlots(ent, r); err != nil {
-				Debug.Printf("unable to fill selection %s for %s: %v", s, className, err)
+				Debug.Printf("syncBaseline fill error: %v", err)
+				os.Exit(1)
 			}
 		}
 	}
