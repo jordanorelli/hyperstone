@@ -30,11 +30,12 @@ func (s selection) fillSlotsIter(offset int, dest slotted, path string, r bit.Re
 	}
 	switch s.count - offset {
 	case 1:
+		old := dest.getSlotValue(slot)
 		v := dest.slotType(slot).nü()
+		Debug.Printf("%v %s.%s (%s) %v read", s, path, dest.slotName(slot), dest.slotType(slot).typeName(), old)
 		if err := v.read(r); err != nil {
 			return fmt.Errorf("unable to fill selection %v for %s.%s (%s): %v", s, path, dest.slotName(slot), dest.slotType(slot).typeName(), err)
 		}
-		old := dest.getSlotValue(slot)
 		dest.setSlotValue(slot, v)
 		Debug.Printf("%v %s.%s (%s) %v -> %v", s, path, dest.slotName(slot), dest.slotType(slot).typeName(), old, v)
 		return nil

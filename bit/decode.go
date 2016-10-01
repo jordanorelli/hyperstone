@@ -61,62 +61,42 @@ func ReadUBitVarFP(r Reader) uint64 {
 // in little-endian order. The most-significant bit of each byte represents a
 // continuation bit.
 func ReadVarInt(r Reader) uint64 {
-	var (
-		x     uint64
-		b     uint64
-		shift uint
-	)
-	for ; shift < 64; shift += 7 {
-		b = r.ReadBits(8)
+	var x uint64
+	var s uint
+	for i := 0; ; i++ {
+		b := r.ReadBits(8)
 		if r.Err() != nil {
 			return 0
 		}
-		x |= b & 0x7f << shift
-		if b&0x80 == 0 {
-			return x
+		if b < 0x80 {
+			if i > 9 || i == 9 && b > 1 {
+				panic("varint overflow")
+			}
+			return x | b<<s
 		}
+		x |= b & 0x7f << s
+		s += 7
 	}
-	return x
 }
 
 // reads a 32bit varint
 func ReadVarInt32(r Reader) uint32 {
-	var (
-		x     uint64
-		b     uint64
-		shift uint
-	)
-	for ; shift < 32; shift += 7 {
-		b = r.ReadBits(8)
+	var x uint32
+	var s uint
+	for i := 0; ; i++ {
+		b := r.ReadBits(8)
 		if r.Err() != nil {
 			return 0
 		}
-		x |= b & 0x7f << shift
-		if b&0x80 == 0 {
-			return uint32(x)
+		if b < 0x80 {
+			if i > 4 || i == 4 && b > 0xf {
+				panic("varint32 overflow")
+			}
+			return x | uint32(b)<<s
 		}
+		x |= uint32(b&0x7f) << s
+		s += 7
 	}
-	return uint32(x)
-}
-
-// reads a 32bit varint
-func ReadVarInt16(r Reader) uint16 {
-	var (
-		x     uint64
-		b     uint64
-		shift uint
-	)
-	for ; shift < 16; shift += 7 {
-		b = r.ReadBits(8)
-		if r.Err() != nil {
-			return 0
-		}
-		x |= b & 0x7f << shift
-		if b&0x80 == 0 {
-			return uint16(x)
-		}
-	}
-	return uint16(x)
 }
 
 func ReadBool(r Reader) bool {

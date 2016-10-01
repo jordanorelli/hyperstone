@@ -20,10 +20,10 @@ func arrayType(spec *typeSpec, env *Env) tÿpe {
 	elemSpec := *spec
 	elemSpec.typeName = elemName
 	elemType := parseTypeSpec(&elemSpec, env)
-	return &array_t{elemType, count}
+	return &array_t{elem: elemType, count: count}
 }
 
-func parseArrayName(s string) (string, int) {
+func parseArrayName(s string) (string, uint) {
 	runes := []rune(s)
 	if runes[len(runes)-1] != ']' {
 		panic("invalid array type name: " + s)
@@ -38,7 +38,7 @@ func parseArrayName(s string) (string, int) {
 					panic("invalid array type name: " + err.Error())
 				}
 			}
-			return strings.TrimSpace(string(runes[:i])), n
+			return strings.TrimSpace(string(runes[:i])), uint(n)
 		}
 	}
 	panic("invalid array type name: " + s)
@@ -46,7 +46,15 @@ func parseArrayName(s string) (string, int) {
 
 type array_t struct {
 	elem  tÿpe
-	count int
+	count uint
+	bits  uint
+}
+
+func (t *array_t) sizeBits() uint {
+	if t.bits == 0 {
+		t.bits = bit.Length(t.count)
+	}
+	return t.bits
 }
 
 func (t *array_t) nü() value       { return array{t: t, slots: make([]value, t.count)} }
@@ -60,7 +68,9 @@ type array struct {
 func (a array) tÿpe() tÿpe { return a.t }
 
 func (a array) read(r bit.Reader) error {
-	for i := range a.slots {
+	n := r.ReadBits(a.t.bits)
+	Debug.Printf("reading %d array elements", n)
+	for i := uint64(0); i < n; i++ {
 		if a.slots[i] == nil {
 			a.slots[i] = a.t.elem.nü()
 		}

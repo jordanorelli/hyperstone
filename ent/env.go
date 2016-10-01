@@ -63,6 +63,9 @@ func (e *Env) mergeSendTables(m *dota.CDemoSendTables) error {
 	if err != nil {
 		return wrap(err, "unable to get serializers in sendtables")
 	}
+	for i, s := range flat.GetSymbols() {
+		Debug.Printf("symbol %d: %s", i, s)
+	}
 	e.symbols = symbolTable(flat.GetSymbols())
 	e.stubClasses(flat)
 	if err := e.parseFields(flat); err != nil {

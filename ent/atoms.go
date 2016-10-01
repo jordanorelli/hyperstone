@@ -48,7 +48,7 @@ type uint8_v uint8
 
 func (v uint8_v) tÿpe() tÿpe { return uint8_t }
 func (v *uint8_v) read(r bit.Reader) error {
-	*v = uint8_v(r.ReadBits(8))
+	*v = uint8_v(bit.ReadVarInt32(r))
 	return r.Err()
 }
 
@@ -71,7 +71,7 @@ type uint16_v uint16
 
 func (v uint16_v) tÿpe() tÿpe { return uint16_t }
 func (v *uint16_v) read(r bit.Reader) error {
-	*v = uint16_v(bit.ReadVarInt16(r))
+	*v = uint16_v(bit.ReadVarInt32(r))
 	return r.Err()
 }
 
@@ -94,11 +94,7 @@ type uint32_v uint32
 
 func (v uint32_v) tÿpe() tÿpe { return uint32_t }
 func (v *uint32_v) read(r bit.Reader) error {
-	u := bit.ReadVarInt(r)
-	if u > 1<<32-1 {
-		return fmt.Errorf("uint32 overflow: %d", u)
-	}
-	*v = uint32_v(u)
+	*v = uint32_v(bit.ReadVarInt32(r))
 	return r.Err()
 }
 
@@ -121,11 +117,36 @@ type uint64_v uint64
 
 func (v uint64_v) tÿpe() tÿpe { return uint64_t }
 func (v *uint64_v) read(r bit.Reader) error {
-	*v = uint64_v(bit.ReadVarInt(r))
+	*v = uint64_v(bit.ReadVarInt32(r))
 	return r.Err()
 }
 
 func (v uint64_v) String() string {
+	return strconv.FormatUint(uint64(v), 10)
+}
+
+// ------------------------------------------------------------------------------
+// uint64fixed
+//
+// (a uint64 value that is always represented on the wire with 64 bits)
+// ------------------------------------------------------------------------------
+
+var uint64fixed_t = &typeLiteral{
+	name: "uint64fixed",
+	newFn: func() value {
+		return new(uint64fixed_v)
+	},
+}
+
+type uint64fixed_v uint64
+
+func (v uint64fixed_v) tÿpe() tÿpe { return uint64fixed_t }
+func (v *uint64fixed_v) read(r bit.Reader) error {
+	*v = uint64fixed_v(r.ReadBits(64))
+	return r.Err()
+}
+
+func (v uint64fixed_v) String() string {
 	return strconv.FormatUint(uint64(v), 10)
 }
 
@@ -154,6 +175,30 @@ func (v int8_v) String() string {
 }
 
 // ------------------------------------------------------------------------------
+// int16
+// ------------------------------------------------------------------------------
+
+var int16_t = &typeLiteral{
+	name: "int16",
+	newFn: func() value {
+		return new(int16_v)
+	},
+}
+
+type int16_v int16
+
+func (v int16_v) tÿpe() tÿpe { return int16_t }
+func (v *int16_v) read(r bit.Reader) error {
+	// TODO: bounds check here?
+	*v = int16_v(bit.ReadZigZag32(r))
+	return r.Err()
+}
+
+func (v int16_v) String() string {
+	return strconv.FormatInt(int64(v), 10)
+}
+
+// ------------------------------------------------------------------------------
 // int32
 // ------------------------------------------------------------------------------
 
@@ -173,6 +218,29 @@ func (v *int32_v) read(r bit.Reader) error {
 }
 
 func (v int32_v) String() string {
+	return strconv.FormatInt(int64(v), 10)
+}
+
+// ------------------------------------------------------------------------------
+// int64
+// ------------------------------------------------------------------------------
+
+var int64_t = &typeLiteral{
+	name: "int64",
+	newFn: func() value {
+		return new(int64_v)
+	},
+}
+
+type int64_v int64
+
+func (v int64_v) tÿpe() tÿpe { return int64_t }
+func (v *int64_v) read(r bit.Reader) error {
+	*v = int64_v(bit.ReadZigZag(r))
+	return r.Err()
+}
+
+func (v int64_v) String() string {
 	return strconv.FormatInt(int64(v), 10)
 }
 
@@ -229,24 +297,70 @@ func (c color) String() string {
 	return fmt.Sprintf("#%x%x%x%x", c.r, c.g, c.b, c.a)
 }
 
+// ------------------------------------------------------------------------------
+// CUtlSymbolLarge
+// ------------------------------------------------------------------------------
+
+var cutl_string_t = typeLiteral{
+	name: "CUtlSymbolLarge",
+	newFn: func() value {
+		return new(cutl_string_v)
+	},
+}
+
+type cutl_string_v string
+
+func (v cutl_string_v) tÿpe() tÿpe     { return cutl_string_t }
+func (v cutl_string_v) String() string { return string(v) }
+func (v *cutl_string_v) read(r bit.Reader) error {
+	*v = cutl_string_v(bit.ReadString(r))
+	return r.Err()
+}
+
 var atom_types = []tÿpe{
 	bool_t,
 	uint8_t,
 	uint16_t,
 	uint32_t,
-	uint64_t,
 	int8_t,
+	int16_t,
 	int32_t,
+	int64_t,
 	stringToken_t,
 	color_t,
+	cutl_string_t,
 }
 
 func atomType(spec *typeSpec, env *Env) tÿpe {
 	for _, t := range atom_types {
 		if t.typeName() == spec.typeName {
 			Debug.Printf("  atom type: %s", t.typeName())
+			if spec.bits != 0 {
+				return typeError("spec can't be atom type: has bit specification: %v", spec)
+			}
+			if spec.encoder != "" {
+				return typeError("spec can't be atom type: has encoder specification: %v", spec)
+			}
+			if spec.flags != 0 {
+				return typeError("spec can't be atom type: has flags: %v", spec)
+			}
+			if spec.high != 0 {
+				return typeError("spec can't be atom type: has high value constraint: %v", spec)
+			}
+			if spec.low != 0 {
+				return typeError("spec can't be atom type: has low value constraint: %v", spec)
+			}
+			if spec.serializer != "" {
+				return typeError("spec can't be atom type: has serializer: %v", spec)
+			}
 			return t
 		}
+	}
+	if spec.typeName == "uint64" {
+		if spec.encoder == "fixed64" {
+			return uint64fixed_t
+		}
+		return uint64_t
 	}
 	return nil
 }

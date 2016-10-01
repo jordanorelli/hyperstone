@@ -42,10 +42,10 @@ func genericName(name string) ([2]string, error) {
 	for i, r := range runes {
 		if r == '<' {
 			if depth == 0 {
+				b_start = i
 				out[0] = strings.TrimSpace(string(runes[0:i]))
 			}
 			depth++
-			b_start = i
 		}
 		if r == '>' {
 			depth--
@@ -89,6 +89,7 @@ func (v *cutl_vector) tÿpe() tÿpe { return v.t }
 
 func (v *cutl_vector) read(r bit.Reader) error {
 	count := bit.ReadVarInt32(r)
+	Debug.Printf("allocating cutl_vector of size %d with element type %s", count, v.t.elem.typeName())
 	v.slots = make([]value, count)
 	return r.Err()
 }
