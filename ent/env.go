@@ -2,7 +2,6 @@ package ent
 
 import (
 	"github.com/golang/protobuf/proto"
-	"os"
 	"strconv"
 
 	"github.com/jordanorelli/hyperstone/bit"
@@ -11,12 +10,13 @@ import (
 )
 
 type Env struct {
-	symbols symbolTable
-	source  bit.BufReader
-	classes map[string]*classHistory
-	netIds  map[int]string
-	fields  []field
-	strings *stbl.Dict
+	symbols  symbolTable
+	source   bit.BufReader
+	classes  map[string]*classHistory
+	netIds   map[int]string
+	fields   []field
+	strings  *stbl.Dict
+	entities map[int]*entity
 }
 
 func NewEnv() *Env {
@@ -183,7 +183,7 @@ func (e *Env) syncBaselineTable(t *stbl.Table) {
 		for _, s := range selections {
 			if err := s.fillSlots(ent, r); err != nil {
 				Debug.Printf("syncBaseline fill error: %v", err)
-				os.Exit(1)
+				break
 			}
 		}
 	}

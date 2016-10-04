@@ -88,9 +88,7 @@ type cutl_vector struct {
 func (v *cutl_vector) tÿpe() tÿpe { return v.t }
 
 func (v *cutl_vector) read(r bit.Reader) error {
-	count := bit.ReadVarInt32(r)
-	Debug.Printf("allocating cutl_vector of size %d with element type %s", count, v.t.elem.typeName())
-	v.slots = make([]value, count)
+	bit.ReadVarInt32(r) // ??
 	return r.Err()
 }
 
@@ -110,4 +108,10 @@ func (v *cutl_vector) setSlotValue(slot int, val value) {
 		v.slots[slot] = val
 	}
 }
-func (v *cutl_vector) getSlotValue(slot int) value { return v.slots[slot] }
+
+func (v *cutl_vector) getSlotValue(slot int) value {
+	if slot >= len(v.slots) {
+		return nil
+	}
+	return v.slots[slot]
+}

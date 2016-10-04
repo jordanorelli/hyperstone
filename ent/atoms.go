@@ -317,8 +317,32 @@ func (v *cutl_string_v) read(r bit.Reader) error {
 	return r.Err()
 }
 
+// ------------------------------------------------------------------------------
+// char
+//
+// this seems absolutely wrong, but it's how it's done in clarity. a char is a
+// cstring? wtf?
+// ------------------------------------------------------------------------------
+
+var char_t = typeLiteral{
+	name: "char",
+	newFn: func() value {
+		return new(char_v)
+	},
+}
+
+type char_v byte
+
+func (v char_v) tÿpe() tÿpe     { return char_t }
+func (v char_v) String() string { return string(v) }
+func (v *char_v) read(r bit.Reader) error {
+	*v = char_v(r.ReadByte())
+	return r.Err()
+}
+
 var atom_types = []tÿpe{
 	bool_t,
+	char_t,
 	uint8_t,
 	uint16_t,
 	uint32_t,

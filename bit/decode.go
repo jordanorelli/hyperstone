@@ -62,41 +62,33 @@ func ReadUBitVarFP(r Reader) uint64 {
 // continuation bit.
 func ReadVarInt(r Reader) uint64 {
 	var x uint64
-	var s uint
-	for i := 0; ; i++ {
+	for s := uint64(0); s < 70; s += 7 {
 		b := r.ReadBits(8)
 		if r.Err() != nil {
 			return 0
 		}
-		if b < 0x80 {
-			if i > 9 || i == 9 && b > 1 {
-				panic("varint overflow")
-			}
-			return x | b<<s
-		}
 		x |= b & 0x7f << s
-		s += 7
+		if b < 0x80 {
+			break
+		}
 	}
+	return x
 }
 
 // reads a 32bit varint
 func ReadVarInt32(r Reader) uint32 {
 	var x uint32
-	var s uint
-	for i := 0; ; i++ {
-		b := r.ReadBits(8)
+	for s := uint32(0); s < 35; s += 7 {
+		b := uint32(r.ReadBits(8))
 		if r.Err() != nil {
 			return 0
 		}
+		x |= b & 0x7f << s
 		if b < 0x80 {
-			if i > 4 || i == 4 && b > 0xf {
-				panic("varint32 overflow")
-			}
-			return x | uint32(b)<<s
+			break
 		}
-		x |= uint32(b&0x7f) << s
-		s += 7
 	}
+	return x
 }
 
 func ReadBool(r Reader) bool {

@@ -66,5 +66,5 @@ func TestTree(t *testing.T) {
 		}
 	}
 
-	testWalk(htree, "")
+	testWalk(huffRoot, "")
 }
