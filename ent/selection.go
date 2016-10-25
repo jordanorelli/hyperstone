@@ -19,36 +19,37 @@ type selection struct {
 func (s selection) String() string { return fmt.Sprint(s.path()) }
 func (s selection) path() []int    { return s.vals[:s.count] }
 
-func (s selection) fill(offset int, displayPath string, dest slotted, br bit.Reader) error {
+func (s selection) fillSlots(v slotted, r bit.Reader) error {
+	return s.fillSlotsIter(0, v, v.tÿpe().typeName(), r)
+}
+
+func (s selection) fillSlotsIter(offset int, dest slotted, path string, r bit.Reader) error {
 	slot := s.vals[offset]
 	if s.count-offset <= 0 {
-		panic("selection makes no sense")
+		return fmt.Errorf("unable to fill selection %v having count %d at offset %d", s, s.count, offset)
 	}
 	switch s.count - offset {
 	case 1:
-		fn := dest.slotDecoder(slot)
-		if fn == nil {
-			switch dest.(type) {
-			case *Entity:
-				Debug.Printf("%s %s (%s)", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot))
-				return nil
-			default:
-				Info.Printf("slotted value %v has no decoder for slot %d", dest, slot)
-				return nil
-			}
+		old := dest.getSlotValue(slot)
+		v := dest.slotType(slot).nü()
+		Debug.Printf("%v %s.%s (%s) %v read", s, path, dest.slotName(slot), dest.slotType(slot).typeName(), old)
+		if err := v.read(r); err != nil {
+			return fmt.Errorf("unable to fill selection %v for %s.%s (%s): %v", s, path, dest.slotName(slot), dest.slotType(slot).typeName(), err)
 		}
-		old := dest.slotValue(slot)
-		val := fn(br)
-		dest.setSlotValue(slot, val)
-		Debug.Printf("%s %s (%s): %v -> %v", s, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), old, val)
+		dest.setSlotValue(slot, v)
+		Debug.Printf("%v %s.%s (%s) %v -> %v", s, path, dest.slotName(slot), dest.slotType(slot).typeName(), old, v)
 		return nil
 	default:
-		v := dest.slotValue(slot)
+		v := dest.getSlotValue(slot)
+		if v == nil {
+			v = dest.slotType(slot).nü()
+			dest.setSlotValue(slot, v)
+		}
 		vs, ok := v.(slotted)
 		if !ok {
-			return fmt.Errorf("selection %s at offset %d (%d) refers to a slot (%s) that contains a non-slotted type (%s) with value %v", s, offset, slot, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), dest.slotType(slot), v)
+			return fmt.Errorf("dest %s (%s) isn't slotted", dest.slotName(slot), dest.slotType(slot).typeName())
 		}
-		return s.fill(offset+1, fmt.Sprintf("%s.%s", displayPath, dest.slotName(slot)), vs, br)
+		return s.fillSlotsIter(offset+1, vs, fmt.Sprintf("%s.%s", path, dest.slotName(slot)), r)
 	}
 }
 
@@ -67,11 +68,11 @@ type selectionReader struct {
 	all [1024]selection
 }
 
-func (r *selectionReader) readSelections(br bit.Reader, n node) ([]selection, error) {
+func (r *selectionReader) readSelections(br bit.Reader) ([]selection, error) {
 	r.cur.count = 1
 	r.cur.vals[0] = -1
 	r.count = 0
-	for fn := walk(n, br); fn != nil; fn = walk(n, br) {
+	for fn := walk(huffRoot, br); fn != nil; fn = walk(huffRoot, br) {
 		if err := br.Err(); err != nil {
 			return nil, fmt.Errorf("unable to read selection: bit reader error: %v", err)
 		}

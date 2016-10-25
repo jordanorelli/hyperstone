@@ -1,11 +1,10 @@
 package ent
 
 import (
-	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/jordanorelli/hyperstone/bit"
-	"github.com/jordanorelli/hyperstone/dota"
 )
 
 const (
@@ -14,80 +13,126 @@ const (
 	f_center
 )
 
-func parseFloatType(n *Namespace, flat *dota.ProtoFlattenedSerializerFieldT) (Type, error) {
-	if flat.VarEncoderSym != nil {
-		encoder := n.Symbol(int(flat.GetVarEncoderSym())).String()
-		switch encoder {
-		case "coord":
-			return nil, fmt.Errorf("coord encoder isn't dont yet")
-		default:
-			return nil, fmt.Errorf("unknown float encoder: %s", encoder)
-		}
+func floatType(spec *typeSpec, env *Env) tÿpe {
+	switch spec.typeName {
+	case "CNetworkedQuantizedFloat":
+		return qFloatType(spec, env)
+	case "float32":
+	case "Vector":
+	default:
+		return nil
 	}
-
-	if flat.BitCount != nil {
-		bits := int(flat.GetBitCount())
-		switch {
-		case bits < 0:
-			return nil, fmt.Errorf("invalid bit count on float field: %d", bits)
-		case bits < 32:
-			return quantizedFloat(n, flat)
-		case bits == 0, bits == 32:
-			// these seem meaningless, which is suspicious.
-		default:
-			return nil, fmt.Errorf("bit count is too high on float field: %d", bits)
-		}
+	if spec.encoder == "coord" {
+		Debug.Printf("  coord float type")
+		return coord_t
 	}
-
-	if flat.LowValue != nil || flat.HighValue != nil {
-		return nil, fmt.Errorf("float32 with a low or high value isn't supported")
+	if spec.serializer == "simulationtime" {
+		return nil
 	}
-
-	type_name := n.Symbol(int(flat.GetVarTypeSym())).String()
-	return &Primitive{name: type_name, read: readFloat32}, nil
+	switch spec.bits {
+	case 0, 32:
+		Debug.Printf("  std float type")
+		return float_t
+	default:
+		return qFloatType(spec, env)
+	}
 }
 
-func quantizedFloat(n *Namespace, flat *dota.ProtoFlattenedSerializerFieldT) (Type, error) {
-	if flat.LowValue == nil && flat.HighValue == nil {
-		return nil, fmt.Errorf("quantizedFloat has no boundaries")
-	}
-
-	bits := uint(flat.GetBitCount())
-	low, high := flat.GetLowValue(), flat.GetHighValue()
-	flags := int(flat.GetEncodeFlags())
-
-	flags = flags & 7                   // dunno how to handle -8 lol
-	steps := uint(1<<bits - 1)          // total number of intervals
-	span := high - low                  // total range of values
-	step_width := span / float32(steps) // output width of each step
-	if span < 0 {
-		return nil, fmt.Errorf("invalid quantization span")
-	}
-
-	var special *float32
-	switch {
-	case flags&f_min > 0:
-		special = &low
-	case flags&f_max > 0:
-		special = &high
-	case flags&f_center > 0:
-		middle := (high + low) * 0.5
-		special = &middle
-	}
-
-	read := func(br bit.Reader, d *Dict) (interface{}, error) {
-		if special != nil && bit.ReadBool(br) {
-			return *special, nil
-		}
-		u := br.ReadBits(bits)
-		return low + float32(u)*step_width, br.Err()
-	}
-
-	type_name := n.Symbol(int(flat.GetVarTypeSym())).String()
-	return &Primitive{name: type_name, read: read}, nil
+var coord_t = &typeLiteral{
+	name: "coord",
+	newFn: func() value {
+		return new(coord_v)
+	},
 }
 
-// reads an IEEE 754 binary float value off of the stream
-func readFloat32(br bit.Reader, d *Dict) (interface{}, error) {
-	return math.Float32frombits(uint32(br.ReadBits(32))), nil
+type coord_v float32
+
+func (v coord_v) tÿpe() tÿpe { return coord_t }
+func (v *coord_v) read(r bit.Reader) error {
+	*v = coord_v(bit.ReadCoord(r))
+	return r.Err()
+}
+
+func (v coord_v) String() string {
+	return strconv.FormatFloat(float64(v), 'f', 3, 32)
+}
+
+var float_t = &typeLiteral{
+	name: "float",
+	newFn: func() value {
+		return new(float_v)
+	},
+}
+
+type float_v float32
+
+func (v float_v) tÿpe() tÿpe { return float_t }
+func (v *float_v) read(r bit.Reader) error {
+	*v = float_v(math.Float32frombits(uint32(r.ReadBits(32))))
+	return r.Err()
+}
+
+func (v float_v) String() string {
+	return strconv.FormatFloat(float64(v), 'f', 3, 32)
+}
+
+func qFloatType(spec *typeSpec, env *Env) tÿpe {
+	if spec.bits < 0 {
+		return typeError("quantized float has invalid negative bit count specifier")
+	}
+	if spec.high-spec.low < 0 {
+		return typeError("quantized float has invalid negative range")
+	}
+
+	t := &qfloat_t{typeSpec: *spec}
+	t.span = t.high - t.low
+	t.intervals = uint(1<<t.bits - 1)
+	t.interval = t.span / float32(t.intervals)
+
+	if t.flags > 0 {
+		t.special = new(float32)
+		switch t.flags {
+		case f_min:
+			*t.special = t.low
+		case f_max:
+			*t.special = t.high
+		case f_center:
+			*t.special = t.low + (t.high+t.low)*0.5
+		default:
+			return typeError("dunno how to handle qfloat flag value: %d", t.flags)
+		}
+	}
+
+	Debug.Printf("  qfloat type")
+	return t
+}
+
+type qfloat_t struct {
+	typeSpec
+	span      float32 // total range of values
+	intervals uint    // number of intervals in the quantization range
+	interval  float32 // width of one interval
+	special   *float32
+}
+
+func (t *qfloat_t) nü() value       { return &qfloat_v{t: t} }
+func (t qfloat_t) typeName() string { return "qfloat" }
+
+type qfloat_v struct {
+	t *qfloat_t
+	v float32
+}
+
+func (v qfloat_v) tÿpe() tÿpe { return v.t }
+func (v *qfloat_v) read(r bit.Reader) error {
+	if v.t.special != nil && bit.ReadBool(r) {
+		v.v = *v.t.special
+	} else {
+		v.v = v.t.low + float32(r.ReadBits(v.t.bits))*v.t.interval
+	}
+	return r.Err()
+}
+
+func (v qfloat_v) String() string {
+	return strconv.FormatFloat(float64(v.v), 'f', 3, 32)
 }

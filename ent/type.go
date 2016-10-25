@@ -1,99 +1,121 @@
 package ent
 
 import (
-	"bytes"
 	"fmt"
+
 	"github.com/jordanorelli/hyperstone/bit"
 	"github.com/jordanorelli/hyperstone/dota"
 )
 
-type decodeFn func(bit.Reader, *Dict) (interface{}, error)
-
-// a Type in the entity type system. Note that not every type is necessarily an
-// entity type, since there are necessarily primitives, and above that, arrays
-// and generics.
-type Type interface {
-	// creates a new value of the given type.
-	New(...interface{}) interface{}
-
-	// name is primarily of interest for debugging
-	Name() string
-
-	// whether or not the produced values are expected to be slotted.
-	Slotted() bool
-
-	// reads a value of this type off of the bit reader
-	Read(bit.Reader, *Dict) (interface{}, error)
+type tÿpe interface {
+	nü() value
+	typeName() string
 }
 
-func parseType(n *Namespace, flat *dota.ProtoFlattenedSerializerFieldT) (Type, error) {
-	Debug.Printf("parseType: %s", prettyFlatField(n, flat))
-	type_name := n.Symbol(int(flat.GetVarTypeSym())).String()
-
-	if prim, ok := primitives[type_name]; ok {
-		Debug.Printf("  parseType: found primitive with name %s", type_name)
-		return &prim, nil
-	}
-
-	if n.HasClass(type_name) {
-		Debug.Printf("  parseType: found class with name %s", type_name)
-		return nil, nil
-	}
-
-	switch type_name {
-	case "float32", "CNetworkedQuantizedFloat":
-		Debug.Printf("  parseType: parsing as float type")
-		return parseFloatType(n, flat)
-	case "CGameSceneNodeHandle":
-		return &Handle{name: "CGameSceneNodeHandle"}, nil
-	case "QAngle":
-		return parseQAngleType(n, flat)
-	}
-
-	Debug.Printf("  parseType: failed")
-	// type ProtoFlattenedSerializerFieldT struct {
-	// 	VarTypeSym             *int32
-	// 	VarNameSym             *int32
-	// 	VarEncoderSym          *int32
-	// 	FieldSerializerNameSym *int32
-	// 	FieldSerializerVersion *int32
-	// 	BitCount               *int32
-	// 	LowValue               *float32
-	// 	HighValue              *float32
-	// 	EncodeFlags            *int32
-	// 	SendNodeSym            *int32
-	// }
-	return nil, nil
+type typeLiteral struct {
+	name  string
+	newFn func() value
 }
 
-func prettyFlatField(n *Namespace, ff *dota.ProtoFlattenedSerializerFieldT) string {
-	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "{type: %s", n.Symbol(int(ff.GetVarTypeSym())))
-	fmt.Fprintf(&buf, " name: %s", n.Symbol(int(ff.GetVarNameSym())))
-	if ff.BitCount != nil {
-		fmt.Fprintf(&buf, " bits: %d", ff.GetBitCount())
+func (t typeLiteral) nü() value        { return t.newFn() }
+func (t typeLiteral) typeName() string { return t.name }
+
+type typeParseFn func(*typeSpec, *Env) tÿpe
+
+func parseFieldType(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) tÿpe {
+	spec := new(typeSpec)
+	spec.fromProto(flat, env)
+	return parseTypeSpec(spec, env)
+}
+
+func parseTypeSpec(spec *typeSpec, env *Env) tÿpe {
+	Debug.Printf("  parse spec: %v", spec)
+	coalesce := func(fns ...typeParseFn) tÿpe {
+		for _, fn := range fns {
+			if t := fn(spec, env); t != nil {
+				return t
+			}
+		}
+		return nil
 	}
-	if ff.LowValue != nil {
-		fmt.Fprintf(&buf, " low: %f", ff.GetLowValue())
+	return coalesce(arrayType, atomType, floatType, handleType, qAngleType,
+		hSeqType, genericType, vectorType, classType, unknownType)
+}
+
+type unknown_t string
+
+func (t unknown_t) typeName() string { return string(t) }
+func (t *unknown_t) nü() value {
+	return &unknown_v{t: t}
+}
+
+type unknown_v struct {
+	t tÿpe
+	v uint64
+}
+
+func (v unknown_v) tÿpe() tÿpe { return v.t }
+func (v *unknown_v) read(r bit.Reader) error {
+	v.v = bit.ReadVarInt(r)
+	return r.Err()
+}
+
+func (v unknown_v) String() string {
+	return fmt.Sprintf("%s(unknown):%d", v.t.typeName(), v.v)
+}
+
+func unknownType(spec *typeSpec, env *Env) tÿpe {
+	Debug.Printf("Unknown Type: %v", spec)
+	t := unknown_t(spec.typeName)
+	return &t
+}
+
+// a type error is both an error and a type. It represents a type that we were
+// unable to correctly parse. It can be interpreted as an error or as a type;
+// when interpreted as a type, it errors every time it tries to read a value.
+func typeError(t string, args ...interface{}) tÿpe {
+	Debug.Printf("  type error: %s", fmt.Sprintf(t, args...))
+	return error_t(fmt.Sprintf(t, args...))
+}
+
+type error_t string
+
+func (e error_t) nü() value        { panic("can't create an error val like that") }
+func (e error_t) typeName() string { return "error" }
+func (e error_t) Error() string    { return string(e) }
+
+type typeSpec struct {
+	name        string
+	typeName    string
+	bits        uint
+	low         float32
+	high        float32
+	flags       int
+	serializer  string
+	serializerV int
+	send        string
+	encoder     string
+}
+
+func (s *typeSpec) fromProto(flat *dota.ProtoFlattenedSerializerFieldT, env *Env) {
+	s.name = env.symbol(int(flat.GetVarNameSym()))
+	s.typeName = env.symbol(int(flat.GetVarTypeSym()))
+	if flat.GetBitCount() < 0 {
+		// this would cause ridiculously long reads later if we let it overflow
+		panic("negative bit count: data is likely corrupt")
 	}
-	if ff.HighValue != nil {
-		fmt.Fprintf(&buf, " high: %f", ff.GetHighValue())
+	s.bits = uint(flat.GetBitCount())
+	s.low = flat.GetLowValue()
+	s.high = flat.GetHighValue()
+	s.flags = int(flat.GetEncodeFlags())
+	if flat.FieldSerializerNameSym != nil {
+		s.serializer = env.symbol(int(*flat.FieldSerializerNameSym))
 	}
-	if ff.EncodeFlags != nil {
-		fmt.Fprintf(&buf, " flags: %d", ff.GetEncodeFlags())
+	s.serializerV = int(flat.GetFieldSerializerVersion())
+	if flat.SendNodeSym != nil {
+		s.send = env.symbol(int(*flat.SendNodeSym))
 	}
-	if ff.FieldSerializerNameSym != nil {
-		fmt.Fprintf(&buf, " serializer: %s", n.Symbol(int(ff.GetFieldSerializerNameSym())))
+	if flat.VarEncoderSym != nil {
+		s.encoder = env.symbol(int(*flat.VarEncoderSym))
 	}
-	if ff.FieldSerializerVersion != nil {
-		fmt.Fprintf(&buf, " version: %d", ff.GetFieldSerializerVersion())
-	}
-	if ff.SendNodeSym != nil {
-		fmt.Fprintf(&buf, " send: %s", n.Symbol(int(ff.GetSendNodeSym())))
-	}
-	if ff.VarEncoderSym != nil {
-		fmt.Fprintf(&buf, " encoder: %s", n.Symbol(int(ff.GetVarEncoderSym())))
-	}
-	fmt.Fprintf(&buf, "}")
-	return buf.String()
 }

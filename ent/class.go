@@ -2,53 +2,57 @@ package ent
 
 import (
 	"fmt"
-	"github.com/jordanorelli/hyperstone/dota"
 )
 
-// Class represents a set of constraints around an Entity.
-type Class struct {
-	name    Symbol
-	Version int
-	Fields  []*Field
-
-	// all other entities for this class use this instance as a prototype
-	baseline *Entity
-
-	// maps field names back to their indexes. Entities use this to access
-	// their own fields by name instead of by slot.
-	fieldNames map[string]int
-}
-
-func (c *Class) Name() string  { return c.name.String() }
-func (c *Class) Slotted() bool { return true }
-func (c *Class) Id() classId   { return classId{name: c.name, version: c.Version} }
-
-func (c *Class) New(serial int, baseline bool) *Entity {
-	e := &Entity{
-		Class:      c,
-		slots:      make([]interface{}, len(c.Fields)),
-		serial:     serial,
-		isBaseline: baseline,
-	}
-	for slot := range e.slots {
-		e.slots[slot] = c.Fields[slot].initializer()
-	}
-	return e
-}
-
-func (c Class) String() string {
-	return fmt.Sprintf("{%s %d}", c.Name, c.Version)
-}
-
-// A class is identified by the union of its name and version.
-type classId struct {
-	name    Symbol
+type class struct {
+	name    string
 	version int
+	fields  []field
 }
 
-func (c *Class) fromProto(v *dota.ProtoFlattenedSerializerT, fields []Field) {
-	c.Fields = make([]*Field, len(v.GetFieldsIndex()))
-	for i, fi := range v.GetFieldsIndex() {
-		c.Fields[i] = &fields[fi]
+func (c class) String() string { return c.typeName() }
+
+func (c class) typeName() string {
+	return fmt.Sprintf("%s_v%d", c.name, c.version)
+}
+
+func (c *class) nü() value {
+	return &entity{class: c, slots: make([]value, len(c.fields))}
+}
+
+type classHistory struct {
+	versions map[int]*class
+	oldest   *class
+	newest   *class
+}
+
+func (h *classHistory) add(c *class) {
+	if h.oldest == nil || c.version < h.oldest.version {
+		h.oldest = c
 	}
+	if h.newest == nil || c.version > h.newest.version {
+		h.newest = c
+	}
+	if h.versions == nil {
+		h.versions = make(map[int]*class)
+	}
+	h.versions[c.version] = c
+}
+
+func (h *classHistory) version(v int) *class {
+	if h.versions == nil {
+		return nil
+	}
+	return h.versions[v]
+}
+
+func classType(spec *typeSpec, env *Env) tÿpe {
+	if spec.serializer != "" {
+		c := env.classVersion(spec.serializer, spec.serializerV)
+		if c != nil {
+			return c
+		}
+		return typeError("unable to find class named %s with version %d", spec.serializer, spec.serializerV)
+	}
+	return nil
 }

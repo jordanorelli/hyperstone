@@ -5,70 +5,101 @@ import (
 	"math"
 
 	"github.com/jordanorelli/hyperstone/bit"
-	"github.com/jordanorelli/hyperstone/dota"
 )
 
-func parseQAngleType(n *Namespace, flat *dota.ProtoFlattenedSerializerFieldT) (Type, error) {
-	type_name := n.Symbol(int(flat.GetVarTypeSym())).String()
-	if flat.VarEncoderSym != nil {
-		encoder := n.Symbol(int(flat.GetVarEncoderSym())).String()
-		switch encoder {
-		case "qangle_pitch_yaw":
-			return nil, fmt.Errorf("that qangle pitch yaw thing isn't done yet")
+var qangle_t = &typeLiteral{
+	name: "qangle",
+	newFn: func() value {
+		return new(qangle)
+	},
+}
+
+type qangle struct{ pitch, yaw, roll float32 }
+
+func (q qangle) tÿpe() tÿpe { return qangle_t }
+func (q *qangle) read(r bit.Reader) error {
+	pitch, yaw, roll := bit.ReadBool(r), bit.ReadBool(r), bit.ReadBool(r)
+	if pitch {
+		q.pitch = bit.ReadCoord(r)
+	}
+	if yaw {
+		q.yaw = bit.ReadCoord(r)
+	}
+	if roll {
+		q.roll = bit.ReadCoord(r)
+	}
+	return r.Err()
+}
+
+func (q qangle) String() string {
+	return fmt.Sprintf("qangle{%f %f %f}", q.pitch, q.yaw, q.roll)
+}
+
+func qAngleType(spec *typeSpec, env *Env) tÿpe {
+	if spec.typeName != "QAngle" {
+		return nil
+	}
+	if spec.encoder == "qangle_pitch_yaw" {
+		switch {
+		case spec.bits <= 0 || spec.bits > 32:
+			return typeError("qangle pitch_yaw has invalid bit size: %d", spec.bits)
+		case spec.bits == 32:
+			return pitchYaw_t
 		default:
-			return nil, fmt.Errorf("unknown qangle encoder: %s", encoder)
+			t := pitchYawAngles_t(spec.bits)
+			return &t
 		}
 	}
-	if flat.BitCount == nil {
-		return nil, fmt.Errorf("dunno what to do when qangle type has no bitcount")
-	}
-	if flat.GetBitCount() < 0 {
-		return nil, fmt.Errorf("negative bit count wtf")
-	}
-	bits := uint(flat.GetBitCount())
-	switch bits {
+	switch spec.bits {
 	case 0:
-		return &Primitive{name: type_name, read: readQAngleCoords}, nil
+		Debug.Printf("  qangle type")
+		return qangle_t
 	case 32:
-		return &Primitive{name: type_name, read: readQAngleFloats}, nil
+		return nil
 	default:
-		return &Primitive{name: type_name, read: qangleReader(bits)}, nil
+		return nil
 	}
 }
 
-func qangleReader(bits uint) decodeFn {
-	return func(br bit.Reader, d *Dict) (interface{}, error) {
-		return &vector{
-			x: bit.ReadAngle(br, bits),
-			y: bit.ReadAngle(br, bits),
-			z: bit.ReadAngle(br, bits),
-		}, br.Err()
-	}
+var pitchYaw_t = &typeLiteral{
+	name: "qangle:pitchYaw",
+	newFn: func() value {
+		return new(pitchYaw_v)
+	},
 }
 
-func readQAngleCoords(br bit.Reader, d *Dict) (interface{}, error) {
-	var (
-		v vector
-		x = bit.ReadBool(br)
-		y = bit.ReadBool(br)
-		z = bit.ReadBool(br)
-	)
-	if x {
-		v.x = bit.ReadCoord(br)
-	}
-	if y {
-		v.y = bit.ReadCoord(br)
-	}
-	if z {
-		v.z = bit.ReadCoord(br)
-	}
-	return v, br.Err()
+type pitchYaw_v qangle
+
+func (v pitchYaw_v) tÿpe() tÿpe { return pitchYaw_t }
+func (v *pitchYaw_v) read(r bit.Reader) error {
+	v.pitch = math.Float32frombits(uint32(r.ReadBits(32)))
+	v.yaw = math.Float32frombits(uint32(r.ReadBits(32)))
+	return r.Err()
 }
 
-func readQAngleFloats(br bit.Reader, d *Dict) (interface{}, error) {
-	return &vector{
-		x: math.Float32frombits(uint32(br.ReadBits(32))),
-		y: math.Float32frombits(uint32(br.ReadBits(32))),
-		z: math.Float32frombits(uint32(br.ReadBits(32))),
-	}, br.Err()
+func (v pitchYaw_v) String() string {
+	return fmt.Sprintf("qangle:pitchYaw{%f %f}", v.pitch, v.yaw)
+}
+
+type pitchYawAngles_t uint
+
+func (t pitchYawAngles_t) typeName() string { return "qangle:pitchYawAngles" }
+func (t *pitchYawAngles_t) nü() value {
+	return &pitchYawAngles_v{t: t}
+}
+
+type pitchYawAngles_v struct {
+	t *pitchYawAngles_t
+	qangle
+}
+
+func (v pitchYawAngles_v) tÿpe() tÿpe { return v.t }
+func (v *pitchYawAngles_v) read(r bit.Reader) error {
+	v.pitch = bit.ReadAngle(r, uint(*v.t))
+	v.yaw = bit.ReadAngle(r, uint(*v.t))
+	return r.Err()
+}
+
+func (v pitchYawAngles_v) String() string {
+	return fmt.Sprintf("qangle:pitchYawAngles{%f %f}", v.pitch, v.yaw)
 }
